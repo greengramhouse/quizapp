@@ -1056,16 +1056,22 @@
         };
 
         try {
-          if (!liff || !liff.shareTargetPicker) {
+          const isInClient = (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient());
+          // If running inside LINE (LIFF client) prefer sendMessages (send to chat)
+          if (isInClient && liff.sendMessages) {
+            await liff.sendMessages([flexMsg]);
+            Swal.fire("แชร์แล้ว", "ส่งผลลัพธ์ไปยังแชทของคุณแล้ว", "success");
+          } else if (liff && liff.shareTargetPicker) {
+            // on regular browsers use shareTargetPicker
+            await liff.shareTargetPicker([flexMsg]);
+            Swal.fire("แชร์แล้ว", "ส่งผลลัพธ์ไปยังผู้รับเรียบร้อย", "success");
+          } else {
             Swal.fire(
               "ไม่สามารถแชร์",
               "ฟังก์ชันการแชร์ไม่พร้อมใช้งานในสภาพแวดล้อมนี้",
               "warning"
             );
-            return;
           }
-          await liff.shareTargetPicker([flexMsg]);
-          Swal.fire("แชร์แล้ว", "ส่งผลลัพธ์ไปยังผู้รับเรียบร้อย", "success");
         } catch (e) {
           console.error("Share error", e);
           Swal.fire("แชร์ไม่สำเร็จ", e.message || String(e), "error");
