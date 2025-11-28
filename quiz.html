@@ -69,13 +69,6 @@
           <h1 class="text-2xl font-bold mb-2">ระบบข้อสอบออนไลน์ (เก็บที่ localStorage)</h1>
           <p class="text-sm text-gray-600 mb-4">เข้าสู่ระบบผ่าน LINE เพื่อเริ่มทำข้อสอบทีละข้อ สามารถกลับมาทำต่อได้ด้วยบัญชี LINE เดิม</p>
 
-          <label class="block text-sm mb-1">ธีม</label>
-          <select id="themeSelect" class="w-full border p-2 rounded mb-3">
-            <option value="pink">ชมพู</option>
-            <option value="green">เขียว</option>
-            <option value="blue">น้ำเงิน</option>
-          </select>
-
           <div class="flex gap-2">
             <button id="btnStart" class="flex-1 bg-green-600 text-white p-2 rounded" onclick="handleLineLogin()">เข้าสู่ระบบ LINE</button>
             <button class="bg-red-100 text-red-600 p-2 rounded" onclick="clearAll()">ล้างข้อมูลทั้งหมด</button>
@@ -167,7 +160,6 @@
 --------------------------*/
 let setsData = []; // loaded from JSON
 let userLineId = null; // changed from email to LINE user ID
-let theme = null;
 let currentSetIndex = 0;
 let currentQuiz = [];
 let userAnswers = {}; // mapping questionIndex -> selectedChoice
@@ -316,7 +308,7 @@ function loadMeta() {
   const lineId = localStorage.getItem('quizUserLineId');
   if (!lineId) return null;
   const raw = localStorage.getItem(storageKeyMeta(lineId));
-  return raw ? JSON.parse(raw) : { unlocked:0, theme:'pink' };
+  return raw ? JSON.parse(raw) : { unlocked:0 };
 }
 function saveMeta(meta){
   const lineId = localStorage.getItem('quizUserLineId');
@@ -340,24 +332,16 @@ function saveAnswers(setIndex, answers) {
 
 /* ---------- handle start / login ---------- */
 function handleStart(){
-  const th = document.getElementById('themeSelect').value;
   if (!userLineId) {
     Swal.fire('แจ้งเตือน', 'กรุณาเข้าสู่ระบบ LINE ก่อน', 'warning');
     return;
   }
-  
   // load meta if any
   let meta = loadMeta();
   if (!meta) {
-    meta = { unlocked:0, theme: th };
-    saveMeta(meta);
-  } else {
-    // keep stored theme unless user changed
-    meta.theme = th;
+    meta = { unlocked:0 };
     saveMeta(meta);
   }
-  applyTheme(meta.theme);
-
   // if there is incomplete work on any unlocked set, load that automatically
   const unlocked = meta.unlocked || 0;
   for (let i=0;i<=unlocked;i++){
@@ -365,28 +349,17 @@ function handleStart(){
     const answeredCount = Object.keys(answers).length;
     const total = setsData[i].questions.length;
     if (answeredCount>0 && answeredCount<total) {
-      // resume this set
       currentSetIndex = i;
       currentQuiz = setsData[i].questions;
       userAnswers = answers;
-      currentIndex = answeredCount; // continue next unanswered
+      currentIndex = answeredCount;
       openQuizUI();
       loadQuestion();
       return;
     }
   }
-
-  // else go to set selection
-  document.getElementById('homeInfo').innerText = `เลือกชุดข้อสอบหรือตั้งค่าเวลา`;
+  document.getElementById('homeInfo').innerText = `เลือกชุดข้อสอบ`;
   goSetPage();
-}
-
-/* ---------- theme ---------- */
-function applyTheme(th){
-  document.body.classList.remove('theme-pink','theme-green','theme-blue');
-  if (th === 'pink') document.body.classList.add('theme-pink');
-  if (th === 'green') document.body.classList.add('theme-green');
-  if (th === 'blue') document.body.classList.add('theme-blue');
 }
 
 /* ---------- navigation helpers ---------- */
