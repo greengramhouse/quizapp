@@ -30,7 +30,6 @@
   <header class="w-full shadow sticky top-0 bg-white z-40">
     <div class="container-max px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <img src="https://i.pinimg.com/736x/6f/9d/64/6f9d649a3fb40cfc21a5d68586e45e61.jpg" alt="" class="h-8 w-8 rounded-lg">
         <div class="text-xl font-bold">MyQuiz</div>
         <nav class="hidden md:flex gap-2">
           <button id="navHome" class="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded" onclick="goHome()">หน้าแรก</button>
@@ -45,6 +44,7 @@
       </div>
 
       <div class="flex items-center gap-3">
+        <img id="userAvatar" class="w-8 h-8 rounded-full hidden" src="" alt="avatar" />
         <div id="loggedUser" class="text-sm text-gray-600"></div>
         <button id="btnLogout" class="text-sm text-red-600 hidden" onclick="logout()">ออกจากระบบ</button>
         <button id="mobileMenuBtn" class="md:hidden px-2 py-1 bg-gray-100 rounded" onclick="toggleMobile()">เมนู</button>
@@ -163,6 +163,7 @@
 let setsData = []; // loaded from JSON
 let userLineId = null; // changed from email to LINE user ID
 let userDisplayName = null;
+let imaageUrl = null;
 let currentSetIndex = 0;
 let currentQuiz = [];
 let userAnswers = {}; // mapping questionIndex -> selectedChoice
@@ -195,10 +196,22 @@ async function initializeLIFF() {
       const profile = await liff.getProfile();
       userLineId = profile.userId;
       userDisplayName = profile.displayName;
+      imaageUrl = profile.pictureUrl;
       localStorage.setItem('quizUserLineId', userLineId);
       // update UI
       document.getElementById('loggedUser').innerText = `${profile.displayName || 'ผู้ใช้'} (LINE)`;
       document.getElementById('btnLogout').classList.remove('hidden');
+      // avatar
+      try {
+        const avatar = document.getElementById('userAvatar');
+        if (profile.pictureUrl) {
+          avatar.src = profile.pictureUrl;
+          avatar.classList.remove('hidden');
+        } else {
+          avatar.src = '';
+          avatar.classList.add('hidden');
+        }
+      } catch (er) { /* ignore if element missing */ }
       
       // auto load quiz or show set selection
       loadAfterLogin();
@@ -216,9 +229,22 @@ async function handleLineLogin() {
     try {
       const profile = await liff.getProfile();
       userLineId = profile.userId;
+      userDisplayName = profile.displayName;
+      imaageUrl = profile.pictureUrl;
       localStorage.setItem('quizUserLineId', userLineId);
       document.getElementById('loggedUser').innerText = `${profile.displayName || 'ผู้ใช้'} (LINE)`;
       document.getElementById('btnLogout').classList.remove('hidden');
+      // avatar
+      try {
+        const avatar = document.getElementById('userAvatar');
+        if (profile.pictureUrl) {
+          avatar.src = profile.pictureUrl;
+          avatar.classList.remove('hidden');
+        } else {
+          avatar.src = '';
+          avatar.classList.add('hidden');
+        }
+      } catch (er) {}
       
       loadAfterLogin();
     } catch (e) {
@@ -775,9 +801,16 @@ function showResultsMenuMobile(){
 function logout(){
   stopTimer();
   userLineId = null;
+  userDisplayName = null;
   localStorage.removeItem('quizUserLineId');
   document.getElementById('loggedUser').innerText = '';
   document.getElementById('btnLogout').classList.add('hidden');
+  // clear avatar
+  try {
+    const avatar = document.getElementById('userAvatar');
+    avatar.src = '';
+    avatar.classList.add('hidden');
+  } catch (e) {}
   if (liff.isLoggedIn()) {
     liff.logout();
   }
