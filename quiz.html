@@ -452,6 +452,7 @@ function saveCurrentAnswer(){
 /* next / prev */
 function nextQuestion(){
   // try save
+      console.log(currentSetIndex, userAnswers);
   saveCurrentAnswer();
   // enforce answer?
   if (userAnswers[currentIndex] === undefined){
