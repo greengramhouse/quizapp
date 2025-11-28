@@ -13,7 +13,13 @@
     <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+      integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
     <style>
       /* small custom */
       .theme-pink {
@@ -210,20 +216,18 @@
               >
                 <i class="fa-solid fa-angle-left"></i>
               </button>
-              <div class="flex gap-2">
-                <button
-                  class="px-4 py-2 bg-yellow-500 text-white rounded"
-                  onclick="saveAndQuit()"
-                >
-                  บันทึกแล้วออก
-                </button>
-                <button
-                  class="px-4 py-2 bg-blue-600 text-white rounded"
-                  onclick="nextQuestion()"
-                >
-                  <i class="fa-solid fa-angle-right"></i>
-                </button>
-              </div>
+              <button
+                class="px-4 py-2 bg-yellow-500 text-white rounded"
+                onclick="saveAndQuit()"
+              >
+                บันทึกแล้วออก
+              </button>
+              <button
+                class="px-4 py-2 bg-blue-600 text-white rounded"
+                onclick="nextQuestion()"
+              >
+                <i class="fa-solid fa-angle-right"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -955,7 +959,9 @@
                       contents: [
                         {
                           type: "image",
-                          url: imaageUrl || "https://scdn.line-apps.com/n/channel_devcenter/img/fx/01_1_cafe.png",
+                          url:
+                            imaageUrl ||
+                            "https://scdn.line-apps.com/n/channel_devcenter/img/fx/01_1_cafe.png",
                           size: "full",
                           aspectMode: "cover",
                         },
