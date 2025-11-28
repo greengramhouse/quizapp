@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz App with LIFF</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- LINE LIFF SDK -->
+<script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+<style>
+/* theme classes */
+.theme-pink { --tw-bg-opacity: 1; --tw-bg-color:#f9e2e7; background-color: rgba(249,226,231,var(--tw-bg-opacity)); }
+.theme-green { --tw-bg-opacity: 1; --tw-bg-color:#dafbe1; background-color: rgba(218,251,225,var(--tw-bg-opacity)); }
+.theme-blue { --tw-bg-opacity: 1; --tw-bg-color:#d0e7fb; background-color: rgba(208,231,251,var(--tw-bg-opacity)); }
+</style>
+</head>
+<body class="theme-pink min-h-screen flex flex-col">
+
+<!-- Header -->
+<header class="p-4 bg-gray-200 flex justify-between items-center">
+  <div id="loggedUser" class="font-bold">ผู้ใช้: -</div>
+  <div>
+    <button id="btnLogout" class="hidden px-2 py-1 bg-red-500 text-white rounded" onclick="logout()">Logout</button>
+    <button class="px-2 py-1 bg-gray-500 text-white rounded" onclick="clearAll()">ล้างข้อมูลทั้งหมด</button>
+  </div>
+</header>
+
+<!-- Home / Login Section -->
+<section id="homeSection" class="p-4">
+  <h1 class="text-xl font-bold mb-2">Quiz App</h1>
+  <div class="mb-2" id="homeInfo">กรุณาเข้าสู่ระบบ</div>
+  <div class="mb-2">
+    <label>อีเมล: <input type="email" id="emailInput" class="border p-1 rounded"></label>
+  </div>
+  <div class="mb-2">
+    <label>ธีม: 
+      <select id="themeSelect" class="border p-1 rounded">
+        <option value="pink">ชมพู</option>
+        <option value="green">เขียว</option>
+        <option value="blue">ฟ้า</option>
+      </select>
+    </label>
+  </div>
+  <div class="flex gap-2 mb-4">
+    <button class="px-3 py-1 bg-blue-500 text-white rounded" onclick="handleStart()">เริ่ม / โหลดต่อ</button>
+  </div>
+  <div class="mb-2">
+    <label>เวลา/ข้อ (วินาที): <input type="number" id="timePerQuestion" value="60" class="border p-1 rounded w-20"></label>
+  </div>
+  <div class="mb-4">
+    <label>เลือกชุดข้อสอบ:
+      <select id="setSelect" class="border p-1 rounded w-full"></select>
+    </label>
+    <button class="mt-2 px-3 py-1 bg-green-500 text-white rounded" onclick="startQuiz()">เริ่มทำชุดนี้</button>
+  </div>
+  <div id="setsStatus" class="space-y-1"></div>
+</section>
+
+<!-- Quiz Section -->
+<section id="quizSection" class="p-4 hidden">
+  <div class="flex justify-between mb-2">
+    <div>ผู้ทำ: <span id="displayEmail"></span></div>
+    <div id="displaySetTitle"></div>
+  </div>
+  <div class="mb-2">
+    <div id="qIndicator"></div>
+    <div id="questionText" class="font-medium"></div>
+  </div>
+  <div id="choicesBox" class="mb-2 space-y-1"></div>
+  <div class="mb-2">
+    เวลาเหลือ: <span id="timeLeft"></span> วินาที
+    <div class="w-full bg-gray-300 h-2 rounded mt-1"><div id="progressFill" class="h-2 bg-blue-500 rounded w-0"></div></div>
+  </div>
+  <div class="flex gap-2">
+    <button class="px-3 py-1 bg-gray-500 text-white rounded" onclick="prevQuestion()">ย้อนกลับ</button>
+    <button class="px-3 py-1 bg-gray-500 text-white rounded" onclick="nextQuestion()">ถัดไป</button>
+    <button class="px-3 py-1 bg-yellow-500 text-white rounded" onclick="saveAndQuit()">บันทึก & ออก</button>
+  </div>
+</section>
+
+<!-- Result Section -->
+<section id="resultSection" class="p-4 hidden">
+  <h2 class="text-lg font-bold mb-2">ผลลัพธ์</h2>
+  <div>ผู้ทำ: <span id="resEmail"></span></div>
+  <div>ชุดข้อสอบ: <span id="resSetTitle"></span></div>
+  <div>คะแนน: <span id="resScore"></span></div>
+  <canvas id="scoreChart" class="w-full h-64 mb-2"></canvas>
+  <div id="answerList" class="space-y-2 mb-4"></div>
+  <div id="resultsMenu" class="space-y-1"></div>
+  <button class="px-3 py-1 bg-blue-500 text-white rounded" onclick="goHome()">กลับหน้าแรก</button>
+</section>
+
+<script>
+/* -------------------------
+  Global app state
+--------------------------*/
+let setsData = []; // loaded from JSON
+let userEmail = null;
+let theme = null;
+let currentSetIndex = 0;
+let currentQuiz = [];
+let userAnswers = {}; // mapping questionIndex -> selectedChoice
+let currentIndex = 0;
+let timer = null;
+let timePerQuestion = 60;
+
+/* ---------- helpers for storage keys ---------- */
+function storageKeyAnswers(setIndex, email) {
+  return `quiz_answers_${email}_set${setIndex}`;
+}
+function storageKeyMeta(email) {
+  return `quiz_meta_${email}`; // store unlocked, theme etc.
+}
+
+/* ---------- fetch questions JSON ---------- */
+async function loadQuestions() {
+  try {
+    const res = await fetch('questions.json');
+    if (!res.ok) throw new Error('ไม่สามารถโหลด questions.json ได้');
+    const data = await res.json();
+    setsData = data.sets;
+    renderSetSelect();
+    renderSetsStatus();
+  } catch (e) {
+    alert('โหลดคำถามล้มเหลว: ' + e.message + '\n(ต้องวาง questions.json ในโฟลเดอร์เดียวกัน และเปิดผ่านเว็บเซิร์ฟเวอร์)');
+    console.error(e);
+  }
+}
+
+/* ---------- UI render helpers ---------- */
+function renderSetSelect() {
+  const sel = document.getElementById('setSelect');
+  sel.innerHTML = '';
+  setsData.forEach((s, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `ชุดที่ ${i+1} - ${s.title || ''}`;
+    sel.appendChild(opt);
+  });
+  updateUnlockedOptions();
+}
+
+function updateUnlockedOptions() {
+  const sel = document.getElementById('setSelect');
+  const meta = loadMeta();
+  const unlocked = meta ? (meta.unlocked || 0) : 0;
+  Array.from(sel.options).forEach((opt, idx) => {
+    opt.disabled = idx > unlocked;
+    opt.innerText = `ชุดที่ ${idx+1} - ${setsData[idx].title || ''}` + (idx > unlocked ? ' (ล็อก)' : '');
+  });
+  // rebuild results menu
+  buildResultsMenu();
+}
+
+function renderSetsStatus() {
+  const div = document.getElementById('setsStatus');
+  div.innerHTML = '';
+  setsData.forEach((s, i) => {
+    const saved = loadAnswers(i);
+    const answered = Object.keys(saved).length;
+    const total = s.questions.length;
+    const el = document.createElement('div');
+    el.className = 'flex items-center justify-between';
+    el.innerHTML = `<div><strong>ชุด ${i+1}</strong> ${s.title ? '- ' + s.title : ''}</div>
+      <div class="text-sm text-gray-600">${answered}/${total} ข้อ</div>`;
+    div.appendChild(el);
+  });
+}
+
+/* ---------- load/save meta ---------- */
+function loadMeta() {
+  const email = localStorage.getItem('quizUserEmail');
+  if (!email) return null;
+  const raw = localStorage.getItem(storageKeyMeta(email));
+  return raw ? JSON.parse(raw) : { unlocked:0, theme:'pink' };
+}
+function saveMeta(meta){
+  const email = localStorage.getItem('quizUserEmail');
+  if (!email) return;
+  localStorage.setItem(storageKeyMeta(email), JSON.stringify(meta));
+}
+
+/* ---------- load/save answers ---------- */
+function loadAnswers(setIndex) {
+  const email = localStorage.getItem('quizUserEmail');
+  if (!email) return {};
+  const raw = localStorage.getItem(storageKeyAnswers(setIndex, email));
+  return raw ? JSON.parse(raw) : {};
+}
+function saveAnswers(setIndex, answers) {
+  const email = localStorage.getItem('quizUserEmail');
+  if (!email) return;
+  localStorage.setItem(storageKeyAnswers(setIndex, email), JSON.stringify(answers));
+  renderSetsStatus();
+}
+
+/* ---------- handle start / login ---------- */
+function handleStart(){
+  const em = document.getElementById('emailInput').value.trim().toLowerCase();
+  const th = document.getElementById('themeSelect').value;
+  if (!em) { alert('กรุณากรอกอีเมล'); return; }
+  userEmail = em;
+  localStorage.setItem('quizUserEmail', userEmail);
+  let meta = loadMeta();
+  if (!meta) {
+    meta = { unlocked:0, theme: th };
+    saveMeta(meta);
+  } else { meta.theme = th; saveMeta(meta); }
+  applyTheme(meta.theme);
+  document.getElementById('loggedUser').innerText = userEmail;
+  document.getElementById('btnLogout').classList.remove('hidden');
+
+  const unlocked = meta.unlocked || 0;
+  for (let i=0;i<=unlocked;i++){
+    const answers = loadAnswers(i);
+    const answeredCount = Object.keys(answers).length;
+    const total = setsData[i].questions.length;
+    if (answeredCount>0 && answeredCount<total) {
+      currentSetIndex = i;
+      currentQuiz = setsData[i].questions;
+      userAnswers = answers;
+      currentIndex = answeredCount;
+      openQuizUI();
+      loadQuestion();
+      return;
+    }
+  }
+
+  document.getElementById('homeInfo').innerText = `ยินดีต้อนรับ ${userEmail} — เลือกชุดข้อสอบหรือตั้งค่าเวลา`;
+  goSetPage();
+}
+
+function applyTheme(th){
+  document.body.classList.remove('theme-pink','theme-green','theme-blue');
+  if (th === 'pink') document.body.classList.add('theme-pink');
+  if (th === 'green') document.body.classList.add('theme-green');
+  if (th === 'blue') document.body.classList.add('theme-blue');
+}
+
+function goHome(){ showSection('homeSection'); }
+function goQuiz(){ showSection('quizSection'); }
+function goResults(){ showSection('resultSection'); }
+
+/* ---------- start quiz ---------- */
+function startQuiz(){
+  const sel = document.getElementById('setSelect');
+  const idx = Number(sel.value);
+  currentSetIndex = idx;
+  currentQuiz = setsData[idx].questions;
+  userAnswers = loadAnswers(idx) || {};
+  currentIndex = 0;
+  timePerQuestion = Number(document.getElementById('timePerQuestion').value) || 60;
+  openQuizUI();
+  loadQuestion();
+  updateUnlockedFromMeta();
+}
+
+function openQuizUI(){
+  document.getElementById('displayEmail').innerText = userEmail || '';
+  document.getElementById('displaySetTitle').innerText = `ชุดที่ ${currentSetIndex+1} - ${setsData[currentSetIndex].title}`;
+  showSection('quizSection');
+  buildResultsMenu();
+}
+
+/* ---------- question rendering + timer ---------- */
+function loadQuestion(){
+  stopTimer();
+  if (!currentQuiz || currentQuiz.length===0) return;
+
+  const q = currentQuiz[currentIndex];
+  document.getElementById('questionText').innerText = `ข้อ ${currentIndex+1}: ${q.q}`;
+  const choicesBox = document.getElementById('choicesBox');
+  choicesBox.innerHTML = '';
+  q.choices.forEach((c, idx) => {
+    const checked = (userAnswers[currentIndex] === c) ? 'checked' : '';
+    const lbl = document.createElement('label');
+    lbl.className = 'flex items-center gap-3 p-2 border rounded hover:bg-gray-50';
+    lbl.innerHTML = `<input type="radio" name="choice" value="${c}" ${checked}> <span>${c}</span>`;
+    choicesBox.appendChild(lbl);
+  });
+  document.getElementById('qIndicator').innerText = `ข้อที่ ${currentIndex+1} / ${currentQuiz.length}`;
+  timePerQuestion = Number(document.getElementById('timePerQuestion').value) || 60;
+  startTimer(timePerQuestion);
+  updateProgressFill();
+}
+
+function saveCurrentAnswer(){
+  const sel = document.querySelector("input[name='choice']:checked");
+  if (sel){
+    userAnswers[currentIndex] = sel.value;
+    saveAnswers(currentSetIndex, userAnswers);
+  }
+}
+
+function nextQuestion(){
+  saveCurrentAnswer();
+  if (userAnswers[currentIndex] === undefined){
+    if (!confirm('คุณยังไม่ได้ตอบข้อปัจจุบัน ต้องการข้ามหรือไม่?')) return;
+  }
+  if (currentIndex < currentQuiz.length-1){
+    currentIndex++;
+    loadQuestion();
+  } else {
+    saveCurrentAnswer();
+    showResultFor(currentSetIndex);
+  }
+}
+
+function prevQuestion(){
+  saveCurrentAnswer();
+  if (currentIndex>0){
+    currentIndex--;
+    loadQuestion();
+  }
+}
+
+function saveAndQuit(){
+  saveCurrentAnswer();
+  alert('บันทึกเรียบร้อย คุณสามารถกลับมาทำต่อได้โดยใช้เมลเดิม');
+  goHome();
+}
+
+/* ---------- timer ---------- */
+let remaining = 0;
+function startTimer(seconds){
+  remaining = seconds;
+  document.getElementById('timeLeft').innerText = remaining;
+  timer = setInterval(()=>{
+    remaining--;
+    document.getElementById('timeLeft').innerText = remaining;
+    if (remaining<=0){
+      clearInterval(timer);
+      if (currentIndex < currentQuiz.length-1) {
+        currentIndex++;
+        loadQuestion();
+      } else {
+        showResultFor(currentSetIndex);
+      }
+    }
+  },1000);
+}
+function stopTimer(){ if (timer) { clearInterval(timer); timer = null; } }
+
+function updateProgressFill(){
+  const ratio = ((currentIndex+1)/currentQuiz.length)*100;
+  document.getElementById('progressFill').style.width = ratio + '%';
+}
+
+/* ---------- show results UI ---------- */
+let scoreChart = null;
+function showResultFor(setIndex){
+  stopTimer();
+  const set = setsData[setIndex];
+  const answers = loadAnswers(setIndex);
+  saveAnswers(setIndex, userAnswers);
+  const total = set.questions.length;
+  let correct = 0;
+  let answered = Object.keys(answers).length;
+  const merged = {...answers, ...userAnswers};
+  for (let i=0;i<total;i++){
+    if (merged[i] !== undefined && merged[i] === set.questions[i].answer) correct++;
+  }
+  document.getElementById('resEmail').innerText = userEmail || '';
+  document.getElementById('resSetTitle').innerText = `ชุดที่ ${setIndex+1} - ${set.title}`;
+  document.getElementById('resScore').innerText = `ถูก ${correct} / ${total} (ตอบแล้ว ${answered}/${total})`;
+  const list = document.getElementById('answerList');
+  list.innerHTML = '';
+  for (let i=0;i<total;i++){
+    const q = set.questions[i];
+    const ans = merged[i];
+    const ok = (ans !== undefined && ans === q.answer);
+    const el = document.createElement('div');
+    el.className = 'p-2 border-b';
+    el.innerHTML = `<div class="font-medium">ข้อ ${i+1}: ${q.q}</div>
+      <div>คำตอบของคุณ: <span class="${ok ? 'text-green-600' : 'text-red-600'}">${ans ?? '- (ไม่ได้ตอบ)'}</span></div>
+      <div class="text-blue-700">เฉลย: ${q.answer}</div>`;
+    list.appendChild(el);
+  }
+  renderChart(correct, total);
+
+  const threshold = Math.ceil(total * 0.5);
+  if (correct >= threshold && setIndex < setsData.length-1){
+    const meta = loadMeta();
+    if (meta){
+      const nowUnlocked = Math.max(meta.unlocked || 0, setIndex+1);
+      meta.unlocked = nowUnlocked;
+      saveMeta(meta);
+      updateUnlockedOptions();
+      const sel = document.getElementById('setSelect');
+      if (sel) sel.value = Math.min(nowUnlocked, setsData.length-1);
+      alert(`ผ่านเกณฑ์ (${correct}/${total}) — ปลดล็อกชุดถัดไปแล้ว`);
+    }
+  }
+  showSection('resultSection');
+  buildResultsMenu();
+}
+
+function renderChart(correct,total){
+  const ctx = document.getElementById('scoreChart').getContext('2d');
+  if (scoreChart) scoreChart.destroy();
+  scoreChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: ['ถูก','ผิด'], datasets:[{data:[correct, total-correct], backgroundColor:['#16a34a','#ef4444']}]},
+    options:{responsive:true, maintainAspectRatio:false}
+  });
+}
+
+/* ---------- results menu ---------- */
+function buildResultsMenu(){
+  const menu = document.getElementById('resultsMenu');
+  menu.innerHTML = '';
+  const meta = loadMeta();
+  const unlocked = meta ? (meta.unlocked || 0) : 0;
+  for (let i=0;i<=unlocked;i++){
+    const btn = document.createElement('button');
+    btn.innerText = `ดูผลชุด ${i+1}`;
+    btn.className = 'px-2 py-1 bg-gray-300 rounded';
+    btn.onclick = ()=> showResultFor(i);
+    menu.appendChild(btn);
+  }
+}
+
+/* ---------- section helper ---------- */
+function showSection(id){
+  ['homeSection','quizSection','resultSection'].forEach(sid=>{
+    document.getElementById(sid).classList.add('hidden');
+  });
+  document.getElementById(id).classList.remove('hidden');
+}
+
+/* ---------- unlock logic ---------- */
+function updateUnlockedFromMeta(){
+  const meta = loadMeta();
+  if (!meta) return;
+  meta.unlocked = Math.max(meta.unlocked || 0, currentSetIndex);
+  saveMeta(meta);
+  updateUnlockedOptions();
+}
+
+/* ---------- logout / clear ---------- */
+function logout(){
+  localStorage.removeItem('quizUserEmail');
+  userEmail=null;
+  document.getElementById('loggedUser').innerText='ผู้ใช้: -';
+  document.getElementById('btnLogout').classList.add('hidden');
+  goHome();
+}
+function clearAll(){
+  if (confirm('ลบข้อมูลทั้งหมด?')) localStorage.clear();
+  location.reload();
+}
+
+/* ---------- LIFF init ---------- */
+async function initLIFF(){
+  try{
+    // --- ใส่ LIFF ID ของคุณตรงนี้ ---
+    const liffId = "2006372130-PYKdNb1r";
+    await liff.init({liffId});
+    if (liff.isLoggedIn()){
+      const profile = await liff.getProfile();
+      document.getElementById('loggedUser').innerText = profile.displayName;
+      document.getElementById('btnLogout').classList.remove('hidden');
+      document.getElementById('homeInfo').innerText = `ยินดีต้อนรับ ${profile.displayName}`;
+      userEmail = profile.userId; // ใช้ userId ของ LINE
+      localStorage.setItem('quizUserEmail', userEmail);
+      loadQuestions();
+    } else {
+      liff.login();
+    }
+  } catch(e){ console.error(e); alert('LIFF init error: '+e.message);}
+}
+
+/* ---------- start ---------- */
+window.addEventListener('DOMContentLoaded',()=>{
+  loadQuestions();
+  initLIFF();
+});
+</script>
+</body>
+</html>
