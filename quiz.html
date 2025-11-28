@@ -30,8 +30,8 @@
   <header class="w-full shadow sticky top-0 bg-white z-40">
     <div class="container-max px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <div class="text-xl font-bold">MyQuiz</div>
         <img src="https://i.pinimg.com/736x/6f/9d/64/6f9d649a3fb40cfc21a5d68586e45e61.jpg" alt="" class="h-8 w-8">
+        <div class="text-xl font-bold">MyQuiz</div>
         <nav class="hidden md:flex gap-2">
           <button id="navHome" class="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded" onclick="goHome()">หน้าแรก</button>
           <button id="navQuiz" class="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded" onclick="goQuiz()">ข้อสอบ</button>
@@ -92,7 +92,7 @@
       <div class="bg-white p-6 rounded-lg shadow">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <div class="text-sm text-gray-600">ผู้ใช้: <span id="displayEmail" class="font-medium"></span></div>
+            <div class="text-sm text-gray-600"><span id="displayEmail" class="font-medium"></span></div>
             <div id="displaySetTitle" class="text-lg font-semibold mt-1"></div>
           </div>
 
@@ -812,7 +812,7 @@ function showSection(id){
   document.getElementById(id).classList.remove('hidden');
   // update status displays
   document.getElementById('homeInfo').innerText = userDisplayName ? `เข้าสู่ระบบแล้ว` : '';
-  document.getElementById('loggedUser').innerText = userDisplayName ? `ผู้ใช้ LINE: ${userDisplayName.substring(0, 10)}...` : '';
+  document.getElementById('loggedUser').innerText = userDisplayName ? `${userDisplayName.substring(0, 10)}...` : '';
 }
 
 /* ---------- initial setup ---------- */
