@@ -408,7 +408,7 @@ function startQuiz(){
 
 /* open quiz UI (fill titles) */
 function openQuizUI(){
-  document.getElementById('displayEmail').innerText = userLineId || '';
+  document.getElementById('displayEmail').innerText = userDisplayName || '';
   document.getElementById('displaySetTitle').innerText = `ชุดที่ ${currentSetIndex+1} - ${setsData[currentSetIndex].title}`;
   showSection('quizSection');
   document.getElementById('navQuiz').classList.add('active');
