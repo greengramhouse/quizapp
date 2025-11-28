@@ -554,7 +554,7 @@ function showResultFor(setIndex){
   for (let i=0;i<total;i++){
     const q = set.questions[i];
     const ans = merged[i];
-    const ok = (ans !== undefined && ans === q.answer);
+    const ok = (ans !== undefined && answerEquals(ans, q.answer));
     const el = document.createElement('div');
     el.className = 'p-2 border-b';
     el.innerHTML = `<div class="font-medium">ข้อ ${i+1}: ${q.q}</div>
@@ -619,12 +619,13 @@ async function shareCurrentResult(){
   }
   const set = setsData[idx];
   const answers = loadAnswers(idx) || {};
-  const merged = {...answers, ...userAnswers};
+  const merged = {...answers};
   const total = set.questions.length;
   let correct = 0;
   for (let i=0;i<total;i++){
-    if (merged[i] !== undefined && merged[i] === set.questions[i].answer) correct++;
+    if (merged[i] !== undefined && answerEquals(merged[i], set.questions[i].answer)) correct++;
   }
+  const answered = Object.keys(merged).length;
 
   // Build a simple Flex message bubble
   const flexMsg = {
