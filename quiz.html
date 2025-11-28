@@ -179,6 +179,11 @@ function storageKeyMeta(lineId) {
   return `quiz_meta_${lineId}`; // store unlocked, theme etc.
 }
 
+/* ---------- answer comparison helper ---------- */
+function answerEquals(a, b){
+  // normalize to trimmed strings to avoid type mismatches (number vs string)
+  return String(a ?? '').trim() === String(b ?? '').trim();
+}
 /* ---------- LIFF initialization ---------- */
 async function initializeLIFF() {
   try {
@@ -430,7 +435,7 @@ function loadQuestion(){
   const choicesBox = document.getElementById('choicesBox');
   choicesBox.innerHTML = '';
   q.choices.forEach((c, idx) => {
-    const checked = (userAnswers[currentIndex] === c) ? 'checked' : '';
+    const checked = answerEquals(userAnswers[currentIndex], c) ? 'checked' : '';
     const lbl = document.createElement('label');
     lbl.className = 'flex items-center gap-3 p-2 border rounded hover:bg-gray-50';
     lbl.innerHTML = `<input type="radio" name="choice" value="${c}" ${checked}> <span>${c}</span>`;
@@ -529,12 +534,13 @@ function showResultFor(setIndex){
 
   // compute stats
   const total = set.questions.length;
-  let correct = 0;
-  let answered = Object.keys(answers).length;
-  // compute correct using saved userAnswers (merged)
+  // merge saved answers with current userAnswers (current take precedence)
   const merged = {...answers, ...userAnswers};
+  let correct = 0;
+  // count answered from merged (most accurate)
+  let answered = Object.keys(merged).length;
   for (let i=0;i<total;i++){
-    if (merged[i] !== undefined && merged[i] === set.questions[i].answer) correct++;
+    if (merged[i] !== undefined && answerEquals(merged[i], set.questions[i].answer)) correct++;
   }
 
   // write summary UI
