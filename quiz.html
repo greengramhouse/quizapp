@@ -1,3 +1,167 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MyQuiz — ระบบข้อสอบออนไลน์</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- LINE LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    /* small custom */
+    .theme-pink { background: linear-gradient(180deg,#fff0f6,#ffe6ef); }
+    .theme-green { background: linear-gradient(180deg,#f0fff4,#e6fff0); }
+    .theme-blue { background: linear-gradient(180deg,#f0f7ff,#e6f0ff); }
+
+    /* responsive container */
+    .container-max { max-width: 1100px; margin-left:auto;margin-right:auto; }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+
+  <!-- NAV -->
+  <header class="w-full shadow sticky top-0 bg-white z-40">
+    <div class="container-max px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="text-xl font-bold">MyQuiz</div>
+        <nav class="hidden md:flex gap-2">
+          <button id="navHome" class="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded" onclick="goHome()">หน้าแรก</button>
+          <button id="navQuiz" class="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded" onclick="goQuiz()">ข้อสอบ</button>
+          <div class="relative">
+            <button id="navResults" class="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded" onclick="toggleResultsMenu()">ผลลัพธ์ ▾</button>
+            <div id="resultsMenu" class="hidden absolute right-0 mt-2 bg-white border rounded shadow p-2 w-44 z-50 max-h-96 overflow-y-auto">
+              <!-- result items inserted dynamically -->
+            </div>
+          </div>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div id="loggedUser" class="text-sm text-gray-600"></div>
+        <button id="btnLogout" class="text-sm text-red-600 hidden" onclick="logout()">ออกจากระบบ</button>
+        <button id="mobileMenuBtn" class="md:hidden px-2 py-1 bg-gray-100 rounded" onclick="toggleMobile()">เมนู</button>
+      </div>
+    </div>
+
+    <!-- mobile -->
+    <div id="mobileNav" class="md:hidden hidden bg-white border-t">
+      <div class="flex flex-col p-3 gap-2">
+        <button onclick="goHome()">หน้าแรก</button>
+        <button onclick="goQuiz()">ข้อสอบ</button>
+        <button onclick="showResultsMenuMobile()">ผลลัพธ์</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container-max p-4">
+
+    <!-- HOME -->
+    <section id="homeSection" class="mt-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h1 class="text-2xl font-bold mb-2">ระบบข้อสอบออนไลน์ (เก็บที่ localStorage)</h1>
+          <p class="text-sm text-gray-600 mb-4">เข้าสู่ระบบผ่าน LINE เพื่อเริ่มทำข้อสอบทีละข้อ สามารถกลับมาทำต่อได้ด้วยบัญชี LINE เดิม</p>
+
+          <label class="block text-sm mb-1">ธีม</label>
+          <select id="themeSelect" class="w-full border p-2 rounded mb-3">
+            <option value="pink">ชมพู</option>
+            <option value="green">เขียว</option>
+            <option value="blue">น้ำเงิน</option>
+          </select>
+
+          <div class="flex gap-2">
+            <button id="btnStart" class="flex-1 bg-green-600 text-white p-2 rounded" onclick="handleLineLogin()">เข้าสู่ระบบ LINE</button>
+            <button class="bg-red-100 text-red-600 p-2 rounded" onclick="clearAll()">ล้างข้อมูลทั้งหมด</button>
+          </div>
+
+          <p id="homeInfo" class="mt-3 text-sm text-gray-500"></p>
+        </div>
+
+        <div id="panelSummary" class="bg-white p-6 rounded-lg shadow">
+          <h3 class="font-semibold mb-2">สถานะชุดข้อสอบ</h3>
+          <div id="setsStatus" class="space-y-2 text-sm text-gray-700">
+            <!-- filled dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SELECT / QUIZ -->
+    <section id="quizSection" class="hidden mt-6">
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <div class="text-sm text-gray-600">ผู้ใช้: <span id="displayEmail" class="font-medium"></span></div>
+            <div id="displaySetTitle" class="text-lg font-semibold mt-1"></div>
+          </div>
+
+        <div class="flex items-center gap-3">
+            <label class="text-sm">ชุดข้อสอบ</label>
+            <select id="setSelect" class="border p-2 rounded" onchange="handleSetChange()"></select>
+
+            <button class="bg-green-600 text-white px-3 py-2 rounded" onclick="startQuiz()">เริ่มชุดนี้</button>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <div class="w-full bg-gray-200 h-3 rounded overflow-hidden">
+            <div id="progressFill" class="h-3 bg-blue-600" style="width:0%"></div>
+          </div>
+          <div class="flex justify-between text-sm text-gray-600 mt-2">
+            <div id="qIndicator">ข้อที่ 0 / 0</div>
+          </div>
+
+          <div id="questionCard" class="mt-4 p-4 border rounded bg-white min-h-[140px]">
+            <div id="questionText" class="font-semibold text-lg"></div>
+            <div id="choicesBox" class="mt-3 grid gap-2"></div>
+          </div>
+
+          <div class="mt-4 flex justify-between">
+            <button class="px-4 py-2 bg-gray-300 rounded" onclick="prevQuestion()">ย้อนกลับ</button>
+            <div class="flex gap-2">
+              <button class="px-4 py-2 bg-yellow-500 text-white rounded" onclick="saveAndQuit()">บันทึกแล้วออก</button>
+              <button class="px-4 py-2 bg-blue-600 text-white rounded" onclick="nextQuestion()">ถัดไป</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section id="resultSection" class="hidden mt-6">
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm text-gray-600">ผลลัพธ์ของ: <span id="resEmail" class="font-medium"></span></div>
+            <div id="resSetTitle" class="text-xl font-bold mt-1"></div>
+            <div id="resScore" class="text-lg text-green-600 mt-1"></div>
+          </div>
+          <div class="w-48 h-48">
+            <canvas id="scoreChart"></canvas>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <h4 class="font-semibold mb-2">เฉลย</h4>
+          <div id="answerList" class="space-y-2 max-h-[400px] overflow-auto"></div>
+        </div>
+
+        <div class="mt-4 flex gap-2">
+          <button class="px-4 py-2 bg-gray-300 rounded" onclick="goHome()">กลับหน้าหลัก</button>
+          <button class="px-4 py-2 bg-blue-600 text-white rounded" onclick="goBackToSetSelect()">กลับไปชุดข้อสอบ</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
 <script>
 /* -------------------------
   Global app state
@@ -264,7 +428,6 @@ function startQuiz(){
   currentQuiz = setsData[idx].questions;
   userAnswers = loadAnswers(idx) || {};
   currentIndex = 0;
-  timePerQuestion = Number(document.getElementById('timePerQuestion').value) || 60;
   openQuizUI();
   loadQuestion();
 }
@@ -300,9 +463,6 @@ function loadQuestion(){
 
   // update counters
   document.getElementById('qIndicator').innerText = `ข้อที่ ${currentIndex+1} / ${currentQuiz.length}`;
-  // start timer
-  timePerQuestion = Number(document.getElementById('timePerQuestion').value) || 60;
-  startTimer(timePerQuestion);
   updateProgressFill();
 }
 
@@ -368,23 +528,7 @@ function saveAndQuit(){
 /* ---------- timer ---------- */
 let remaining = 0;
 function startTimer(seconds){
-  remaining = seconds;
-  document.getElementById('timeLeft').innerText = remaining;
-  timer = setInterval(()=>{
-    remaining--;
-    document.getElementById('timeLeft').innerText = remaining;
-    if (remaining<=0){
-      clearInterval(timer);
-      // on timeout: treat as unanswered (or leave undefined) and go next
-      // here we leave unanswered and move on
-      if (currentIndex < currentQuiz.length-1) {
-        currentIndex++;
-        loadQuestion();
-      } else {
-        showResultFor(currentSetIndex);
-      }
-    }
-  },1000);
+  // Timer disabled - no time limit
 }
 function stopTimer(){ if (timer) { clearInterval(timer); timer = null; } }
 
@@ -626,3 +770,5 @@ window.addEventListener('load', async ()=>{
 });
 
 </script>
+</body>
+</html>
