@@ -11,6 +11,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- LINE LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     /* small custom */
@@ -33,8 +35,8 @@
           <button id="navHome" class="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded" onclick="goHome()">หน้าแรก</button>
           <button id="navQuiz" class="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded" onclick="goQuiz()">ข้อสอบ</button>
           <div class="relative">
-            <button id="navResults" class="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded">ผลลัพธ์ ▾</button>
-            <div id="resultsMenu" class="hidden absolute right-0 mt-2 bg-white border rounded shadow p-2 w-44">
+            <button id="navResults" class="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded" onclick="toggleResultsMenu()">ผลลัพธ์ ▾</button>
+            <div id="resultsMenu" class="hidden absolute right-0 mt-2 bg-white border rounded shadow p-2 w-44 z-50 max-h-96 overflow-y-auto">
               <!-- result items inserted dynamically -->
             </div>
           </div>
@@ -205,7 +207,7 @@ async function initializeLIFF() {
     }
   } catch (e) {
     console.error('LIFF init error:', e);
-    alert('ไม่สามารถเชื่อมต่อ LINE ได้: ' + e.message);
+    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อ LINE ได้: ' + e.message, 'error');
   }
 }
 
@@ -223,7 +225,7 @@ async function handleLineLogin() {
       loadAfterLogin();
     } catch (e) {
       console.error('Failed to get profile:', e);
-      alert('ไม่สามารถดึงข้อมูลบัญชี LINE ได้');
+      Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลบัญชี LINE ได้', 'error');
     }
   }
 }
@@ -264,7 +266,7 @@ async function loadQuestions() {
     renderSetSelect();
     renderSetsStatus();
   } catch (e) {
-    alert('โหลดคำถามล้มเหลว: ' + e.message + '\n(ต้องวาง questions.json ในโฟลเดอร์เดียวกัน และเปิดผ่านเว็บเซิร์ฟเวอร์)');
+    Swal.fire('โหลดคำถามล้มเหลว', e.message + '\n(ต้องวาง questions.json ในโฟลเดอร์เดียวกัน และเปิดผ่านเว็บเซิร์ฟเวอร์)', 'error');
     console.error(e);
   }
 }
@@ -344,7 +346,7 @@ function saveAnswers(setIndex, answers) {
 function handleStart(){
   const th = document.getElementById('themeSelect').value;
   if (!userLineId) {
-    alert('กรุณาเข้าสู่ระบบ LINE ก่อน');
+    Swal.fire('แจ้งเตือน', 'กรุณาเข้าสู่ระบบ LINE ก่อน', 'warning');
     return;
   }
   
@@ -486,11 +488,24 @@ function nextQuestion(){
   saveCurrentAnswer();
   // enforce answer?
   if (userAnswers[currentIndex] === undefined){
-    if (confirm('คุณยังไม่ได้ตอบข้อปัจจุบัน ต้องการข้ามหรือไม่? (ถ้าตั้งห้ามข้าม จะต้องตอบก่อน)')) {
-      // allow skip if user confirms
-    } else {
-      return; // stop
-    }
+    Swal.fire({
+      title: 'ยังไม่ได้ตอบ',
+      text: 'คุณยังไม่ได้ตอบข้อปัจจุบัน ต้องการข้ามหรือไม่?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'ข้ามไป',
+      cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        if (currentIndex < currentQuiz.length-1){
+          currentIndex++;
+          loadQuestion();
+        } else {
+          showResultFor(currentSetIndex);
+        }
+      }
+    });
+    return;
   }
   if (currentIndex < currentQuiz.length-1){
     currentIndex++;
@@ -513,7 +528,7 @@ function prevQuestion(){
 /* save & quit (user chooses to stop and return later) */
 function saveAndQuit(){
   saveCurrentAnswer();
-  alert('บันทึกเรียบร้อย คุณสามารถกลับมาทำต่อได้โดยใช้เมลเดิม');
+  Swal.fire('สำเร็จ', 'บันทึกเรียบร้อย คุณสามารถกลับมาทำต่อได้โดยใช้บัญชี LINE เดิม', 'success');
   goHome();
 }
 
@@ -603,7 +618,7 @@ function showResultFor(setIndex){
         sel.value = Math.min(nowUnlocked, setsData.length-1);
       }
       // notify
-      alert(`ผ่านเกณฑ์ (${correct}/${total}) — ปลดล็อกชุดถัดไปแล้ว`);
+      Swal.fire('ยินดีด้วย!', `ผ่านเกณฑ์ (${correct}/${total}) — ปลดล็อกชุดถัดไปแล้ว`, 'success');
     }
   }
 
@@ -632,26 +647,55 @@ function renderChart(correct,total){
 }
 
 /* ---------- results menu (nav) ---------- */
+function toggleResultsMenu(){
+  const menu = document.getElementById('resultsMenu');
+  menu.classList.toggle('hidden');
+}
+
 function buildResultsMenu(){
   const menu = document.getElementById('resultsMenu');
   menu.innerHTML = '';
   const lineId = localStorage.getItem('quizUserLineId');
   const meta = loadMeta();
   const unlocked = meta ? (meta.unlocked || 0) : 0;
+  
+  if (!setsData || setsData.length === 0) {
+    const noData = document.createElement('div');
+    noData.className = 'p-2 text-gray-500 text-sm';
+    noData.innerText = 'ยังไม่มีข้อมูลชุดข้อสอบ';
+    menu.appendChild(noData);
+    return;
+  }
+  
   setsData.forEach((s, i) => {
+    const saved = loadAnswers(i);
+    const hasData = saved && Object.keys(saved).length > 0;
+    const isLocked = i > unlocked;
+    
     const item = document.createElement('button');
-    item.className = 'w-full text-left p-1 hover:bg-gray-50';
-    item.disabled = (i > unlocked);
-    item.innerText = `ชุด ${i+1} ${s.title ? '- ' + s.title : ''}` + (i>unlocked ? ' (ล็อก)' : '');
+    item.className = 'w-full text-left p-2 border-b hover:bg-blue-50 transition';
+    item.style.opacity = isLocked ? '0.5' : '1';
+    item.style.cursor = isLocked ? 'not-allowed' : 'pointer';
+    item.disabled = isLocked || !hasData;
+    
+    let status = '';
+    if (isLocked) status = ' (ล็อก)';
+    else if (!hasData) status = ' (ยังไม่มีข้อมูล)';
+    
+    item.innerText = `ชุด ${i+1}: ${s.title || ''}${status}`;
+    
     item.onclick = ()=> {
-      // only show result if there is any saved data
-      const saved = loadAnswers(i);
-      if (!saved || Object.keys(saved).length===0) {
-        alert('ยังไม่มีผลลัพธ์ชุดนี้');
+      if (isLocked) {
+        Swal.fire('แจ้งเตือน', 'ชุดข้อสอบนี้ถูกล็อกอยู่ คุณต้องผ่านเกณฑ์ของชุดก่อนหน้า', 'warning');
+        return;
+      }
+      if (!hasData) {
+        Swal.fire('แจ้งเตือน', 'ยังไม่มีผลลัพธ์ชุดนี้ กรุณาทำข้อสอบก่อน', 'info');
         return;
       }
       // load merged answers
       userAnswers = saved;
+      document.getElementById('resultsMenu').classList.add('hidden');
       showResultFor(i);
     };
     menu.appendChild(item);
@@ -660,11 +704,40 @@ function buildResultsMenu(){
 
 /* mobile results */
 function showResultsMenuMobile(){
-  // same as buildResultsMenu but mobile alert list
-  let text = '';
-  const meta = loadMeta(); const unlocked = meta ? meta.unlocked||0:0;
-  setsData.forEach((s,i)=>{ text += `${i+1}. ${s.title} ${i>unlocked? '(ล็อก)':''}\n`; });
-  alert('ชุดข้อสอบ:\n' + text + '\nใช้เมนูบน Desktop เพื่อดูผลของชุดที่เคยทำแล้ว');
+  // show modal for mobile
+  const meta = loadMeta();
+  const unlocked = meta ? meta.unlocked||0:0;
+  
+  let options = {};
+  setsData.forEach((s,i)=>{
+    const saved = loadAnswers(i);
+    const hasData = saved && Object.keys(saved).length > 0;
+    const isLocked = i > unlocked;
+    
+    if (!isLocked && hasData) {
+      options[`ชุด ${i+1}: ${s.title}`] = i;
+    }
+  });
+  
+  if (Object.keys(options).length === 0) {
+    Swal.fire('แจ้งเตือน', 'ยังไม่มีผลลัพธ์ที่สามารถดูได้', 'info');
+    return;
+  }
+  
+  Swal.fire({
+    title: 'เลือกชุดข้อสอบ',
+    input: 'select',
+    inputOptions: options,
+    showCancelButton: true,
+    confirmButtonText: 'แสดงผล',
+    cancelButtonText: 'ยกเลิก'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const setIndex = parseInt(result.value);
+      userAnswers = loadAnswers(setIndex);
+      showResultFor(setIndex);
+    }
+  });
 }
 
 /* ---------- utility: logout / clear ---------- */
@@ -681,9 +754,23 @@ function logout(){
 }
 
 function clearAll(){
-  if (!confirm('ต้องการล้างข้อมูลทั้งหมด?')) return;
-  localStorage.clear();
-  location.reload();
+  Swal.fire({
+    title: 'ยืนยันการลบ',
+    text: 'ต้องการลบข้อมูลทั้งหมดหรือไม่? การกระทำนี้ไม่สามารถคืนค่าได้',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'ใช่ ลบข้อมูล',
+    cancelButtonText: 'ยกเลิก'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      localStorage.clear();
+      Swal.fire('สำเร็จ', 'ข้อมูลถูกลบแล้ว', 'success').then(() => {
+        location.reload();
+      });
+    }
+  });
 }
 
 /* ---------- page utils ---------- */
