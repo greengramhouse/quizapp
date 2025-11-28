@@ -744,7 +744,8 @@ function showResultsMenuMobile(){
     const isLocked = i > unlocked;
     
     if (!isLocked && hasData) {
-      options[`ชุด ${i+1}: ${s.title}`] = i;
+      // Swal inputOptions expects { value: label } where value is a string key
+      options[String(i)] = `ชุด ${i+1}: ${s.title || ''}`;
     }
   });
   
