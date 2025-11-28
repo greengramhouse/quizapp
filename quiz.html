@@ -160,6 +160,7 @@
 --------------------------*/
 let setsData = []; // loaded from JSON
 let userLineId = null; // changed from email to LINE user ID
+let userDisplayName = null;
 let currentSetIndex = 0;
 let currentQuiz = [];
 let userAnswers = {}; // mapping questionIndex -> selectedChoice
@@ -185,6 +186,7 @@ async function initializeLIFF() {
     } else {
       const profile = await liff.getProfile();
       userLineId = profile.userId;
+      userDisplayName = profile.displayName;
       localStorage.setItem('quizUserLineId', userLineId);
       // update UI
       document.getElementById('loggedUser').innerText = `${profile.displayName || 'ผู้ใช้'} (LINE)`;
@@ -729,8 +731,8 @@ function showSection(id){
   document.getElementById('resultSection').classList.add('hidden');
   document.getElementById(id).classList.remove('hidden');
   // update status displays
-  document.getElementById('homeInfo').innerText = userLineId ? `เข้าสู่ระบบแล้ว` : '';
-  document.getElementById('loggedUser').innerText = userLineId ? `ผู้ใช้ LINE: ${userLineId.substring(0, 10)}...` : '';
+  document.getElementById('homeInfo').innerText = userDisplayName ? `เข้าสู่ระบบแล้ว` : '';
+  document.getElementById('loggedUser').innerText = userDisplayName ? `ผู้ใช้ LINE: ${userDisplayName.substring(0, 10)}...` : '';
 }
 
 /* ---------- initial setup ---------- */
