@@ -209,7 +209,6 @@ async function handleLineLogin() {
   } else {
     try {
       const profile = await liff.getProfile();
-  lastShownResultIndex = setIndex; // set the last shown result index
       userLineId = profile.userId;
       localStorage.setItem('quizUserLineId', userLineId);
       document.getElementById('loggedUser').innerText = `${profile.displayName || 'ผู้ใช้'} (LINE)`;
@@ -447,7 +446,7 @@ function loadQuestion(){
 function saveCurrentAnswer(){
   const sel = document.querySelector("input[name='choice']:checked");
   if (sel){
-    userAnswers[currentIndex] = Number(sel.value);
+    userAnswers[currentIndex] = sel.value;
     saveAnswers(currentSetIndex, userAnswers);
   }
 }
