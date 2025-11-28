@@ -100,9 +100,9 @@
             <div id="displaySetTitle" class="text-lg font-semibold mt-1"></div>
           </div>
 
-          <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3">
             <label class="text-sm">ชุดข้อสอบ</label>
-            <select id="setSelect" class="border p-2 rounded"></select>
+            <select id="setSelect" class="border p-2 rounded" onchange="handleSetChange()"></select>
 
             <label class="text-sm">เวลา/ข้อ (วินาที)</label>
             <input id="timePerQuestion" type="number" min="5" value="60" class="w-20 border p-1 rounded text-sm">
@@ -156,7 +156,7 @@
 
         <div class="mt-4 flex gap-2">
           <button class="px-4 py-2 bg-gray-300 rounded" onclick="goHome()">กลับหน้าหลัก</button>
-          <button class="px-4 py-2 bg-blue-600 text-white rounded" onclick="goQuiz()">กลับไปชุดข้อสอบ</button>
+          <button class="px-4 py-2 bg-blue-600 text-white rounded" onclick="goBackToSetSelect()">กลับไปชุดข้อสอบ</button>
         </div>
       </div>
     </section>
@@ -294,6 +294,10 @@ function updateUnlockedOptions() {
   buildResultsMenu();
 }
 
+function updateUnlockedFromMeta() {
+  updateUnlockedOptions();
+}
+
 function renderSetsStatus() {
   const div = document.getElementById('setsStatus');
   div.innerHTML = '';
@@ -389,14 +393,34 @@ function applyTheme(th){
 
 /* ---------- navigation helpers ---------- */
 function goHome(){ showSection('homeSection'); }
-function goSetPage(){ goQuiz(); } // alias for quiz page with set selection
+function goSetPage(){ 
+  updateUnlockedOptions();
+  document.getElementById('setSelect').value = 0; // reset to first set
+  goQuiz(); 
+} // alias for quiz page with set selection
 function goQuiz(){ showSection('quizSection'); }
+function goBackToSetSelect(){
+  // Go back to quiz section and set dropdown to current set
+  updateUnlockedOptions();
+  document.getElementById('setSelect').value = currentSetIndex;
+  document.getElementById('displaySetTitle').innerText = `ชุดที่ ${currentSetIndex+1} - ${setsData[currentSetIndex].title}`;
+  goQuiz();
+}
 function goResults(){ showSection('resultSection'); }
 
 /* mobile */
 function toggleMobile(){ document.getElementById('mobileNav').classList.toggle('hidden'); }
 
 /* ---------- start quiz ---------- */
+function handleSetChange(){
+  const sel = document.getElementById('setSelect');
+  const idx = Number(sel.value);
+  // just update the display, don't start yet
+  if (setsData[idx]) {
+    document.getElementById('displaySetTitle').innerText = `ชุดที่ ${idx+1} - ${setsData[idx].title}`;
+  }
+}
+
 function startQuiz(){
   const sel = document.getElementById('setSelect');
   const idx = Number(sel.value);
@@ -407,7 +431,6 @@ function startQuiz(){
   timePerQuestion = Number(document.getElementById('timePerQuestion').value) || 60;
   openQuizUI();
   loadQuestion();
-  updateUnlockedFromMeta(); // ensure menu reflects unlocked status
 }
 
 /* open quiz UI (fill titles) */
@@ -416,6 +439,7 @@ function openQuizUI(){
   document.getElementById('displaySetTitle').innerText = `ชุดที่ ${currentSetIndex+1} - ${setsData[currentSetIndex].title}`;
   showSection('quizSection');
   document.getElementById('navQuiz').classList.add('active');
+  updateUnlockedOptions();
   buildResultsMenu();
 }
 
@@ -584,6 +608,7 @@ function showResultFor(setIndex){
 
   showSection('resultSection');
   // rebuild results menu
+  updateUnlockedOptions(); // update dropdown status
   buildResultsMenu();
 }
 
