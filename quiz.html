@@ -146,8 +146,9 @@
         </div>
 
         <div class="mt-4 flex gap-2">
-          <button class="px-4 py-2 bg-gray-300 rounded" onclick="goHome()">กลับหน้าหลัก</button>
-          <button class="px-4 py-2 bg-blue-600 text-white rounded" onclick="goBackToSetSelect()">กลับไปชุดข้อสอบ</button>
+            <button class="px-4 py-2 bg-gray-300 rounded" onclick="goHome()">กลับหน้าหลัก</button>
+            <button class="px-4 py-2 bg-blue-600 text-white rounded" onclick="goBackToSetSelect()">กลับไปชุดข้อสอบ</button>
+            <button id="btnShareResult" class="px-4 py-2 bg-green-600 text-white rounded" onclick="shareCurrentResult()">แชร์ผลลัพธ์</button>
         </div>
       </div>
     </section>
@@ -167,6 +168,7 @@ let userAnswers = {}; // mapping questionIndex -> selectedChoice
 let currentIndex = 0;
 let timer = null;
 let timePerQuestion = 60;
+let lastShownResultIndex = null; // track which set is currently shown in resultSection
 const LIFF_ID = '2006372130-PYKdNb1r'; // LINE LIFF ID
 
 /* ---------- helpers for storage keys ---------- */
@@ -207,6 +209,7 @@ async function handleLineLogin() {
   } else {
     try {
       const profile = await liff.getProfile();
+  lastShownResultIndex = setIndex; // set the last shown result index
       userLineId = profile.userId;
       localStorage.setItem('quizUserLineId', userLineId);
       document.getElementById('loggedUser').innerText = `${profile.displayName || 'ผู้ใช้'} (LINE)`;
@@ -451,8 +454,9 @@ function saveCurrentAnswer(){
 
 /* next / prev */
 function nextQuestion(){
+    currentSetIndex, userAnswers
+    console.log(currentSetIndex, userAnswers);
   // try save
-      console.log(currentSetIndex, userAnswers);
   saveCurrentAnswer();
   // enforce answer?
   if (userAnswers[currentIndex] === undefined){
@@ -596,6 +600,70 @@ function renderChart(correct,total){
     },
     options: { responsive:true, maintainAspectRatio: false }
   });
+}
+
+/* ---------- share via LIFF (Flex message) ---------- */
+async function shareCurrentResult(){
+  const idx = lastShownResultIndex;
+  if (idx === null || idx === undefined) {
+    Swal.fire('แจ้งเตือน', 'ยังไม่มีผลลัพธ์ให้แชร์', 'info');
+    return;
+  }
+  const set = setsData[idx];
+  const answers = loadAnswers(idx) || {};
+  const merged = {...answers, ...userAnswers};
+  const total = set.questions.length;
+  let correct = 0;
+  for (let i=0;i<total;i++){
+    if (merged[i] !== undefined && merged[i] === set.questions[i].answer) correct++;
+  }
+
+  // Build a simple Flex message bubble
+  const flexMsg = {
+    type: 'flex',
+    altText: `ผลการสอบ: ชุดที่ ${idx+1} - ${set.title}`,
+    contents: {
+      type: 'bubble',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          { type:'text', text: `ผลการสอบ ชุดที่ ${idx+1}`, weight:'bold', size:'lg' },
+          { type:'text', text: set.title || '', size:'sm', color:'#666666', wrap:true }
+        ]
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: [
+          { type:'box', layout:'baseline', contents:[{type:'text', text:'คะแนน', weight:'bold', flex:2},{type:'text', text:`${correct}/${total}`, align:'end', flex:1}] },
+          { type:'box', layout:'baseline', contents:[{type:'text', text:'ร้อยละ', weight:'bold', flex:2},{type:'text', text:`${Math.round((correct/total)*100)}%`, align:'end', flex:1}] },
+          { type:'separator', margin:'md' },
+          { type:'text', text: 'เฉลยบางส่วน:', weight:'bold', size:'sm', margin:'md' }
+        ].concat(
+          set.questions.slice(0,3).map((q,i)=>({ type:'box', layout:'vertical', contents:[{type:'text', text:`ข้อ ${i+1}: ${q.q}`, size:'sm', wrap:true},{type:'text', text:`เฉลย: ${q.answer}`, size:'sm', color:'#0ea5a4'}] }))
+        )
+      },
+      footer: {
+        type:'box', layout:'horizontal', contents: [
+          { type:'button', style:'link', action:{ type:'uri', label:'ดูทั้งหมด', uri: location.href } }
+        ]
+      }
+    }
+  };
+
+  try {
+    if (!liff || !liff.shareTargetPicker) {
+      Swal.fire('ไม่สามารถแชร์', 'ฟังก์ชันการแชร์ไม่พร้อมใช้งานในสภาพแวดล้อมนี้', 'warning');
+      return;
+    }
+    await liff.shareTargetPicker([flexMsg]);
+    Swal.fire('แชร์แล้ว', 'ส่งผลลัพธ์ไปยังผู้รับเรียบร้อย', 'success');
+  } catch (e) {
+    console.error('Share error', e);
+    Swal.fire('แชร์ไม่สำเร็จ', e.message || String(e), 'error');
+  }
 }
 
 /* ---------- results menu (nav) ---------- */
