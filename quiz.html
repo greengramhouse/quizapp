@@ -524,6 +524,9 @@ function showResultFor(setIndex){
   // ensure store current answers too
   saveAnswers(setIndex, userAnswers);
 
+  // mark which result is currently shown so share button can use it
+  lastShownResultIndex = setIndex;
+
   // compute stats
   const total = set.questions.length;
   let correct = 0;
