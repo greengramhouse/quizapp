@@ -373,6 +373,72 @@
           });
         });
       }
+
+      // Migrate stored user answers in localStorage to 0-based indices where possible.
+      // Scans keys like `quiz_answers_<lineId>_set<index>` and updates values.
+      function migrateStoredAnswers() {
+        try {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key) continue;
+            const m = key.match(/^quiz_answers_(.+)_set(\d+)$/);
+            if (!m) continue;
+            const lineId = m[1];
+            const setIndex = Number(m[2]);
+            const set = setsData[setIndex];
+            if (!set || !Array.isArray(set.questions)) continue;
+
+            const raw = localStorage.getItem(key);
+            if (!raw) continue;
+            let answers;
+            try {
+              answers = JSON.parse(raw);
+            } catch (e) {
+              continue;
+            }
+
+            let changed = false;
+            Object.keys(answers).forEach((qIdxStr) => {
+              const qIdx = Number(qIdxStr);
+              const q = set.questions[qIdx];
+              if (!q) return;
+              const choices = Array.isArray(q.choices) ? q.choices : null;
+              let val = answers[qIdxStr];
+              if (val === undefined || val === null) return;
+
+              const n = Number(val);
+              if (!Number.isNaN(n) && choices) {
+                if (n >= 1 && n <= choices.length) {
+                  // 1-based -> convert to 0-based
+                  if (answers[qIdxStr] !== n - 1) {
+                    answers[qIdxStr] = n - 1;
+                    changed = true;
+                  }
+                } else if (n >= 0 && n < choices.length) {
+                  // already 0-based
+                  if (answers[qIdxStr] !== n) {
+                    answers[qIdxStr] = n;
+                    changed = true;
+                  }
+                }
+              } else if (typeof val === "string" && choices) {
+                const t = String(val).trim();
+                const found = choices.findIndex((c) => String(c ?? "").trim() === t);
+                if (found >= 0 && answers[qIdxStr] !== found) {
+                  answers[qIdxStr] = found;
+                  changed = true;
+                }
+              }
+            });
+
+            if (changed) {
+              localStorage.setItem(key, JSON.stringify(answers));
+            }
+          }
+        } catch (e) {
+          console.error("Migration error:", e);
+        }
+      }
       /* ---------- LIFF initialization ---------- */
       async function initializeLIFF() {
         try {
@@ -506,6 +572,8 @@
             if (setsData.length > 0) {
               // normalize answers coming from GAS (they may be numeric indices)
               normalizeAnswers(setsData);
+              // migrate any stored user answers in localStorage to 0-based indices
+              migrateStoredAnswers();
               console.log(`Loaded ${setsData.length} quiz sets from GAS`);
               renderSetSelect();
               renderSetsStatus();
@@ -521,6 +589,7 @@
             const data = await res.json();
             setsData = data.sets || [];
             normalizeAnswers(setsData);
+            migrateStoredAnswers();
             console.log(
               `Loaded ${setsData.length} quiz sets from JSON fallback`
             );
