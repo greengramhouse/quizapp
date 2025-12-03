@@ -1072,10 +1072,6 @@
         }
         const answered = Object.keys(merged).length;
 
-        // Prepare outbound answers (1-based) for sharing
-        const outboundAnswers = prepareOutboundAnswers(idx, merged, true);
-        const outboundStr = outboundAnswers.map((v) => (v === null ? "-" : String(v))).join(", ");
-
         // Build a simple Flex message bubble
         const flexMsg = {
           type: "flex",
@@ -1139,13 +1135,6 @@
                   contents: [
                     {
                       type: "box",
-                  // show answers as 1-based list
-                  {
-                    type: "text",
-                    text: `คำตอบ (1‑based): ${outboundStr}`,
-                    size: "sm",
-                    wrap: true,
-                  },
                       layout: "vertical",
                       contents: [
                         {
