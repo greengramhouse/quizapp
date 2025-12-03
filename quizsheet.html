@@ -784,12 +784,10 @@
         let answered = Object.keys(merged).length;
         for (let i = 0; i < total; i++) {
           const q = questions[i];
-          const choices = q.choices || q.options || [];
-          const correctAns = q.answer;
-          // find correct answer index (1-based)
-          const correctIndex = choices.indexOf(correctAns) + 1;
-          const userChoiceIndex = Number(merged[i]);
-          if (!Number.isNaN(userChoiceIndex) && userChoiceIndex > 0 && userChoiceIndex === correctIndex) {
+          // GAS data has answer as 1-based index directly
+          const correctIndex = Number(q.answer);
+          const userIndex = Number(merged[i]);
+          if (!Number.isNaN(userIndex) && !Number.isNaN(correctIndex) && userIndex === correctIndex) {
             correct++;
           }
         }
@@ -811,10 +809,12 @@
           const q = questionsArr[i];
           const choices = q.choices || q.options || [];
           const userIdx = Number(merged[i]);
-          const userText = (!Number.isNaN(userIdx) && userIdx > 0 && choices[userIdx - 1] !== undefined) ? choices[userIdx - 1] : null;
-          const correctText = q.answer;
-          const correctIndex = choices.indexOf(correctText) + 1;
-          const ok = !Number.isNaN(userIdx) && userIdx > 0 && userIdx === correctIndex;
+          const correctIdx = Number(q.answer); // GAS answer is already 1-based index
+          
+          // get display text from indices
+          const userText = (userIdx > 0 && userIdx <= choices.length) ? choices[userIdx - 1] : null;
+          const correctText = (correctIdx > 0 && correctIdx <= choices.length) ? choices[correctIdx - 1] : '';
+          const ok = (userIdx === correctIdx);
 
           const el = document.createElement("div");
           el.className = "p-2 border-b";
@@ -894,11 +894,12 @@
         let correct = 0;
         for (let i = 0; i < total; i++) {
           const q = questions[i];
-          const choices = q.choices || q.options || [];
-          const correctAns = q.answer;
-          const correctIndex = choices.indexOf(correctAns) + 1;
+          // GAS answer is already 1-based index directly
+          const correctIdx = Number(q.answer);
           const userIdx = Number(merged[i]);
-          if (!Number.isNaN(userIdx) && userIdx > 0 && userIdx === correctIndex) correct++;
+          if (!Number.isNaN(userIdx) && !Number.isNaN(correctIdx) && userIdx === correctIdx) {
+            correct++;
+          }
         }
         const answered = Object.keys(merged).length;
 
