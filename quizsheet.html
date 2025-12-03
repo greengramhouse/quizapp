@@ -38,9 +38,238 @@
         margin-left: auto;
         margin-right: auto;
       }
+
+      /* Loading Spinner Animation */
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        backdrop-filter: blur(2px);
+      }
+
+      .spinner-container {
+        text-align: center;
+      }
+
+      .spinner {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 100%;
+        animation: spin 2s infinite linear;
+        position: relative;
+        box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .spinner::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 100%;
+        background: linear-gradient(135deg, transparent, #667eea, transparent);
+        animation: spin-reverse 2s infinite linear;
+      }
+
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+
+      @keyframes spin-reverse {
+        from { transform: rotate(360deg); }
+        to { transform: rotate(0deg); }
+      }
+
+      .loading-text {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        letter-spacing: 1px;
+      }
+
+      .loading-dot {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #667eea;
+        margin: 0 2px;
+        animation: dot-pulse 1.4s infinite;
+      }
+
+      .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+      .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+      @keyframes dot-pulse {
+        0%, 60%, 100% { opacity: 0.3; }
+        30% { opacity: 1; }
+      }
+
+      /* Smooth transitions */
+      body {
+        transition: background-color 0.3s ease;
+      }
+
+      /* Enhanced card styling */
+      .card-professional {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+      }
+
+      .card-professional:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        border-color: rgba(0, 0, 0, 0.1);
+      }
+
+      /* Enhanced buttons */
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        padding: 10px 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        padding: 10px 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+      }
+
+      .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
+      }
+
+      /* Quiz card styling */
+      .question-card {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 12px;
+        padding: 24px;
+        min-height: 160px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        margin: 20px 0;
+      }
+
+      .choice-button {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 12px 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: left;
+        font-size: 15px;
+      }
+
+      .choice-button:hover {
+        border-color: #667eea;
+        background: #f8f9ff;
+        transform: translateX(4px);
+      }
+
+      .choice-button.selected {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: #667eea;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+
+      /* Progress bar enhancement */
+      .progress-bar {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        height: 4px;
+        border-radius: 2px;
+        transition: width 0.3s ease;
+        box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+      }
+
+      /* Header enhancement */
+      header {
+        background: linear-gradient(to right, #fff, #f8f9fa);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      }
+
+      /* Status badge */
+      .badge-success {
+        display: inline-block;
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(17, 153, 142, 0.3);
+      }
+
+      .badge-locked {
+        display: inline-block;
+        background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(238, 9, 121, 0.3);
+      }
+
+      /* Result page enhancement */
+      .result-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+      }
+
+      .score-display {
+        font-size: 48px;
+        font-weight: 900;
+        background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
     </style>
   </head>
   <body class="min-h-screen antialiased">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="spinner-container">
+        <div class="spinner"></div>
+        <div class="loading-text">
+          กำลังโหลด<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>
+        </div>
+      </div>
+    </div>
     <!-- NAV -->
     <header class="w-full shadow sticky top-0 bg-white z-40">
       <div class="container-max px-4 py-3 flex items-center justify-between">
@@ -118,37 +347,36 @@
       <!-- HOME -->
       <section id="homeSection" class="mt-3">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-          <div class="bg-white p-6 rounded-lg shadow">
-            <h1 class="text-2xl font-bold mb-2">
-              ระบบข้อสอบออนไลน์ (เก็บที่ localStorage)
+          <div class="card-professional p-8">
+            <h1 class="text-3xl font-bold mb-3 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              ระบบข้อสอบออนไลน์
             </h1>
-            <p class="text-sm text-gray-600 mb-4">
-              เข้าสู่ระบบผ่าน LINE เพื่อเริ่มทำข้อสอบทีละข้อ
-              สามารถกลับมาทำต่อได้ด้วยบัญชี LINE เดิม
+            <p class="text-base text-gray-600 mb-6 leading-relaxed">
+              เข้าสู่ระบบผ่าน LINE เพื่อเริ่มทำข้อสอบทีละข้อ สามารถกลับมาทำต่อได้ด้วยบัญชี LINE เดิม
             </p>
 
-            <div class="flex gap-2">
+            <div class="flex gap-3 flex-col sm:flex-row">
               <button
                 id="btnStart"
-                class="flex-1 bg-green-600 text-white p-2 rounded"
+                class="btn-success flex-1 text-center py-3"
                 onclick="handleLineLogin()"
               >
-                เข้าสู่ระบบ LINE
+                <i class="fa-brands fa-line mr-2"></i>เข้าสู่ระบบ LINE
               </button>
               <button
-                class="bg-red-100 text-red-600 p-2 rounded"
+                class="bg-red-100 text-red-700 font-semibold px-4 py-3 rounded-lg hover:bg-red-200 transition"
                 onclick="clearAll()"
               >
-                ล้างข้อมูลทั้งหมด
+                <i class="fa-solid fa-trash mr-2"></i>ล้างข้อมูล
               </button>
             </div>
 
-            <p id="homeInfo" class="mt-3 text-sm text-gray-500"></p>
+            <p id="homeInfo" class="mt-4 text-sm text-gray-500 italic"></p>
           </div>
 
-          <div id="panelSummary" class="bg-white p-6 rounded-lg shadow">
-            <h3 class="font-semibold mb-2">สถานะชุดข้อสอบ</h3>
-            <div id="setsStatus" class="space-y-2 text-sm text-gray-700">
+          <div id="panelSummary" class="card-professional p-8">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">📊 สถานะชุดข้อสอบ</h3>
+            <div id="setsStatus" class="space-y-3 text-sm text-gray-700">
               <!-- filled dynamically -->
             </div>
           </div>
@@ -157,76 +385,79 @@
 
       <!-- SELECT / QUIZ -->
       <section id="quizSection" class="hidden mt-3">
-        <div class="bg-white p-6 rounded-lg shadow">
+        <div class="card-professional p-8">
           <div
-            class="flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+            class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6"
           >
             <div>
-              <div class="text-sm text-gray-600">
-                <span id="displayEmail" class="font-medium"></span>
+              <div class="text-sm text-gray-500 uppercase tracking-wider">
+                <span id="displayEmail" class="font-semibold text-gray-700"></span>
               </div>
               <div
                 id="displaySetTitle"
-                class="text-lg font-semibold mt-1"
+                class="text-2xl font-bold mt-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent"
               ></div>
             </div>
 
             <div
-              class="flex flex-col md:flex-row items-center gap-2 md:gap-3 w-full md:w-auto"
+              class="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto"
             >
-              <label class="text-sm w-full md:w-auto">ชุดข้อสอบ</label>
+              <label class="text-sm font-semibold text-gray-700 w-full md:w-auto">ชุดข้อสอบ:</label>
               <select
                 id="setSelect"
-                class="border p-2 rounded w-full md:w-auto"
+                class="border-2 border-purple-300 p-3 rounded-lg w-full md:w-56 focus:outline-none focus:border-purple-600 transition"
                 onchange="handleSetChange()"
               ></select>
               <button
-                class="bg-green-600 text-white px-3 py-2 rounded w-full md:w-auto md:ml-3"
+                class="btn-success px-6 py-3 w-full md:w-auto"
                 onclick="startQuiz()"
               >
-                เริ่มชุดนี้
+                <i class="fa-solid fa-play mr-2"></i>เริ่มชุดนี้
               </button>
             </div>
           </div>
 
-          <div class="mt-6">
-            <div class="w-full bg-gray-200 h-3 rounded overflow-hidden">
-              <div
-                id="progressFill"
-                class="h-3 bg-blue-600"
-                style="width: 0%"
-              ></div>
-            </div>
-            <div class="flex justify-between text-sm text-gray-600 mt-2">
-              <div id="qIndicator">ข้อที่ 0 / 0</div>
+          <div class="mt-8">
+            <div class="mb-3">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-semibold text-gray-700">ความคืบหน้า</span>
+                <span id="qIndicator" class="text-sm font-bold text-purple-600">ข้อที่ 0 / 0</span>
+              </div>
+              <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                <div
+                  id="progressFill"
+                  class="progress-bar h-full"
+                  style="width: 0%"
+                ></div>
+              </div>
             </div>
 
             <div
               id="questionCard"
-              class="mt-4 p-4 border rounded bg-white min-h-[140px]"
+              class="question-card mt-6"
             >
-              <div id="questionText" class="font-semibold text-lg"></div>
-              <div id="choicesBox" class="mt-3 grid gap-2"></div>
+              <div id="questionText" class="font-semibold text-xl text-gray-800"></div>
+              <div id="choicesBox" class="mt-5 grid gap-3"></div>
             </div>
 
-            <div class="mt-4 flex justify-between">
+            <div class="mt-8 flex justify-between gap-3">
               <button
-                class="px-4 py-2 bg-gray-300 rounded"
+                class="flex-1 md:flex-none px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition flex items-center justify-center gap-2"
                 onclick="prevQuestion()"
               >
-                <i class="fa-solid fa-angle-left"></i>
+                <i class="fa-solid fa-chevron-left"></i>ก่อนหน้า
               </button>
               <button
-                class="px-4 py-2 bg-yellow-500 text-white rounded"
+                class="flex-1 md:flex-none px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-semibold transition flex items-center justify-center gap-2"
                 onclick="saveAndQuit()"
               >
-                บันทึกแล้วออก
+                <i class="fa-solid fa-save"></i>บันทึกและออก
               </button>
               <button
-                class="px-4 py-2 bg-blue-600 text-white rounded"
+                class="flex-1 md:flex-none px-6 py-3 btn-primary flex items-center justify-center gap-2"
                 onclick="nextQuestion()"
               >
-                <i class="fa-solid fa-angle-right"></i>
+                ถัดไป<i class="fa-solid fa-chevron-right"></i>
               </button>
             </div>
           </div>
@@ -235,46 +466,54 @@
 
       <!-- RESULT -->
       <section id="resultSection" class="hidden mt-3">
-        <div class="bg-white p-6 rounded-lg shadow">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="text-sm text-gray-600">
-                ผลลัพธ์ของ: <span id="resEmail" class="font-medium"></span>
+        <div class="result-header">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            <div class="md:col-span-2">
+              <div class="text-sm text-purple-100 uppercase tracking-wider mb-2">ผลลัพธ์ของ</div>
+              <div id="resEmail" class="text-2xl font-bold text-white mb-3"></div>
+              <div id="resSetTitle" class="text-lg text-purple-100 opacity-90"></div>
+            </div>
+            <div class="flex justify-center md:justify-end">
+              <div class="w-40 h-40">
+                <canvas id="scoreChart"></canvas>
               </div>
-              <div id="resSetTitle" class="text-xl font-bold mt-1"></div>
-              <div id="resScore" class="text-lg text-green-600 mt-1"></div>
-            </div>
-            <div class="w-48 h-48">
-              <canvas id="scoreChart"></canvas>
             </div>
           </div>
+        </div>
 
-          <div class="mt-6">
-            <h4 class="font-semibold mb-2">เฉลย</h4>
-            <div
-              id="answerList"
-              class="space-y-2 max-h-[400px] overflow-auto"
-            ></div>
+        <div class="card-professional p-8">
+          <div class="mb-2">
+            <div id="resScore" class="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent"></div>
           </div>
 
-          <div class="mt-4 flex gap-2">
-            <button class="px-4 py-2 bg-gray-300 rounded" onclick="goHome()">
-              กลับหน้าหลัก
+          <h4 class="font-bold text-lg text-gray-800 mb-4 mt-6">📋 รายละเอียดคำตอบ</h4>
+          <div
+            id="answerList"
+            class="space-y-3 max-h-[500px] overflow-y-auto"
+          ></div>
+
+          <div class="mt-8 flex gap-3 flex-col sm:flex-row">
+            <button 
+              class="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition flex items-center justify-center gap-2"
+              onclick="goHome()"
+            >
+              <i class="fa-solid fa-home"></i>กลับหน้าหลัก
             </button>
             <button
-              class="px-4 py-2 bg-blue-600 text-white rounded"
+              class="flex-1 px-6 py-3 btn-primary flex items-center justify-center gap-2"
               onclick="goBackToSetSelect()"
             >
-              กลับไปชุดข้อสอบ
+              <i class="fa-solid fa-list"></i>กลับไปชุดข้อสอบ
             </button>
             <button
               id="btnShareResult"
-              class="px-4 py-2 bg-green-600 text-white rounded"
+              class="flex-1 px-6 py-3 btn-success flex items-center justify-center gap-2"
               onclick="shareCurrentResult()"
             >
-              แชร์ผลลัพธ์
+              <i class="fa-brands fa-line"></i>แชร์ผลลัพธ์
             </button>
           </div>
+        </div>
         </div>
       </section>
     </main>
@@ -421,6 +660,7 @@
 
       /* ---------- fetch questions from GAS or JSON fallback ---------- */
       async function loadQuestions() {
+        showLoading();
         try {
           const url =
             "https://script.google.com/macros/s/AKfycbyosU1BVMbVxSaLR_TOhIOGwCwpuLyvg64QA06aSXVGbBn-qkZs9GF-3pMfSLxJSHX3kQ/exec";
@@ -443,6 +683,7 @@
               console.log(`Loaded ${setsData.length} quiz sets from GAS`);
               renderSetSelect();
               renderSetsStatus();
+              hideLoading();
               return;
             }
           }
@@ -459,8 +700,10 @@
             );
             renderSetSelect();
             renderSetsStatus();
+            hideLoading();
           } catch (jsonError) {
             console.error("Both GAS and JSON failed:", gasError, jsonError);
+            hideLoading();
             Swal.fire(
               "โหลดคำถามล้มเหลว",
               "ไม่สามารถโหลดข้อมูลแบบทดสอบได้ กรุณาลองใหม่อีกครั้ง",
@@ -1255,6 +1498,15 @@
         await initializeLIFF();
         buildResultsMenu();
       });
+
+      /* ---------- Loading Overlay Controls ---------- */
+      function showLoading() {
+        document.getElementById("loadingOverlay").classList.remove("hidden");
+      }
+
+      function hideLoading() {
+        document.getElementById("loadingOverlay").classList.add("hidden");
+      }
     </script>
   </body>
 </html>
