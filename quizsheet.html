@@ -395,7 +395,7 @@
               </div>
               <div
                 id="displaySetTitle"
-                class="text-2xl font-bold mt-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent"
+                class="text-lg font-bold mt-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent"
               ></div>
             </div>
 
@@ -445,7 +445,7 @@
                 class="flex-1 md:flex-none px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition flex items-center justify-center gap-2"
                 onclick="prevQuestion()"
               >
-                <i class="fa-solid fa-chevron-left"></i>ก่อนหน้า
+                <i class="fa-solid fa-chevron-left"></i>
               </button>
               <button
                 class="flex-1 md:flex-none px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-semibold transition flex items-center justify-center gap-2"
@@ -457,7 +457,7 @@
                 class="flex-1 md:flex-none px-6 py-3 btn-primary flex items-center justify-center gap-2"
                 onclick="nextQuestion()"
               >
-                ถัดไป<i class="fa-solid fa-chevron-right"></i>
+                <i class="fa-solid fa-chevron-right"></i>
               </button>
             </div>
           </div>
@@ -565,6 +565,7 @@
             //   profile.displayName || "ผู้ใช้"
             // } (LINE)`;
             document.getElementById("btnLogout").classList.remove("hidden");
+            document.getElementById("btnStart").classList.add("hidden");
             // avatar
             try {
               const avatar = document.getElementById("userAvatar");
@@ -1036,7 +1037,7 @@
         }
 
         // write summary UI
-        document.getElementById("resEmail").innerText = userLineId || "";
+        document.getElementById("resEmail").innerText = userDisplayName || "";
         document.getElementById("resSetTitle").innerText = `ชุดที่ ${
           setIndex + 1
         } - ${set.title}`;
