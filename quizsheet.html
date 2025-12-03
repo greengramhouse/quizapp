@@ -625,7 +625,7 @@
 
       function startQuiz() {
         const sel = document.getElementById("setSelect");
-        const idx = Number(sel.value);
+        const idx = sel.value;
         currentSetIndex = idx;
         currentQuiz = setsData[idx].questions || setsData[idx].items || [];
         userAnswers = loadAnswers(idx) || {};
