@@ -439,6 +439,39 @@
           console.error("Migration error:", e);
         }
       }
+
+      // Prepare answers for outbound (to server/share) as 1-based indices if requested.
+      // - `answersObj` is mapping questionIndex -> storedAnswer (internal 0-based or text)
+      // - returns an array of length = questions.length where unanswered entries are null
+      function prepareOutboundAnswers(setIndex, answersObj, oneBased = true) {
+        const set = setsData[setIndex];
+        if (!set) return [];
+        const qs = set.questions || set.items || [];
+        const out = new Array(qs.length).fill(null);
+        for (let i = 0; i < qs.length; i++) {
+          const a = answersObj && answersObj[i];
+          if (a === undefined || a === null) {
+            out[i] = null;
+            continue;
+          }
+          const n = Number(a);
+          if (!Number.isNaN(n)) {
+            out[i] = oneBased ? n + 1 : n; // convert internal 0-based -> 1-based
+            continue;
+          }
+          // non-numeric (text): try map to index first
+          if (Array.isArray(qs[i].choices)) {
+            const idx = qs[i].choices.findIndex((c) => String(c ?? "").trim() === String(a).trim());
+            if (idx >= 0) {
+              out[i] = oneBased ? idx + 1 : idx;
+              continue;
+            }
+          }
+          // fallback: send raw text
+          out[i] = String(a);
+        }
+        return out;
+      }
       /* ---------- LIFF initialization ---------- */
       async function initializeLIFF() {
         try {
@@ -1039,6 +1072,10 @@
         }
         const answered = Object.keys(merged).length;
 
+        // Prepare outbound answers (1-based) for sharing
+        const outboundAnswers = prepareOutboundAnswers(idx, merged, true);
+        const outboundStr = outboundAnswers.map((v) => (v === null ? "-" : String(v))).join(", ");
+
         // Build a simple Flex message bubble
         const flexMsg = {
           type: "flex",
@@ -1102,6 +1139,13 @@
                   contents: [
                     {
                       type: "box",
+                  // show answers as 1-based list
+                  {
+                    type: "text",
+                    text: `คำตอบ (1‑based): ${outboundStr}`,
+                    size: "sm",
+                    wrap: true,
+                  },
                       layout: "vertical",
                       contents: [
                         {
