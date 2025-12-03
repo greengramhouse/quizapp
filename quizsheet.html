@@ -236,7 +236,7 @@
       <!-- RESULT -->
       <section id="resultSection" class="hidden mt-3">
         <div class="bg-white p-6 rounded-lg shadow">
-          <div class="flex flex-col sm:flex-row gap-3  items-center justify-between">
+          <div class="flex items-center justify-between">
             <div>
               <div class="text-sm text-gray-600">
                 ผลลัพธ์ของ: <span id="resEmail" class="font-medium"></span>
@@ -308,169 +308,6 @@
       function answerEquals(a, b) {
         // normalize to trimmed strings to avoid type mismatches (number vs string)
         return String(a ?? "").trim() === String(b ?? "").trim();
-      }
-      
-      // Return true if user's stored answer matches given choice text or index
-      function isChoiceSelected(userAns, choiceText, choiceIndex) {
-        if (userAns === undefined || userAns === null) return false;
-        // direct text match
-        if (answerEquals(userAns, choiceText)) return true;
-        // numeric matches: userAns may be stored as number or numeric string
-        const uaNum = Number(userAns);
-        if (!Number.isNaN(uaNum)) {
-          if (uaNum === choiceIndex) return true; // 0-based
-          if (uaNum === choiceIndex + 1) return true; // 1-based
-        }
-        return false;
-      }
-
-      // Determine whether a user's answer is correct for a question.
-      // Supports question.answer as 0-based index (number), 1-based index, or choice text.
-      function isCorrectForQuestion(userAns, question) {
-        if (userAns === undefined || userAns === null) return false;
-        const correctRaw = question.answer;
-        // If answer is numeric (0-based or 1-based), normalize to 0-based
-        const correctNum = Number(correctRaw);
-        if (!Number.isNaN(correctNum) && Array.isArray(question.choices)) {
-          // check both 0-based and 1-based possibilities
-          if (question.choices[correctNum] !== undefined) {
-            // correctRaw treated as 0-based index
-            return isChoiceSelected(userAns, question.choices[correctNum], correctNum);
-          }
-          const oneBased = correctNum - 1;
-          if (question.choices[oneBased] !== undefined) {
-            return isChoiceSelected(userAns, question.choices[oneBased], oneBased);
-          }
-        }
-
-        // If user's answer is numeric, try map to choice and compare to correctRaw text
-        const uaNum = Number(userAns);
-        if (!Number.isNaN(uaNum) && Array.isArray(question.choices)) {
-          if (question.choices[uaNum] !== undefined && answerEquals(question.choices[uaNum], correctRaw)) return true;
-          if (question.choices[uaNum - 1] !== undefined && answerEquals(question.choices[uaNum - 1], correctRaw)) return true;
-        }
-
-        // Fallback: compare string-normalized
-        return answerEquals(userAns, correctRaw);
-      }
-
-      // Normalize loaded sets: convert numeric answers into 0-based index when possible
-      function normalizeAnswers(sets) {
-        if (!Array.isArray(sets)) return;
-        sets.forEach((set) => {
-          const qs = set.questions || set.items || [];
-          qs.forEach((q) => {
-            if (!q || q.answer === undefined || q.answer === null) return;
-            const raw = q.answer;
-            const n = Number(raw);
-            if (!Number.isNaN(n) && Array.isArray(q.choices)) {
-              if (n >= 0 && n < q.choices.length) q.answer = n; // already 0-based
-              else if (n >= 1 && n <= q.choices.length) q.answer = n - 1; // convert 1-based -> 0-based
-              else q.answer = String(raw).trim();
-            } else if (typeof raw === 'string') {
-              q.answer = raw.trim();
-            }
-          });
-        });
-      }
-
-      // Migrate stored user answers in localStorage to 0-based indices where possible.
-      // Scans keys like `quiz_answers_<lineId>_set<index>` and updates values.
-      function migrateStoredAnswers() {
-        try {
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (!key) continue;
-            const m = key.match(/^quiz_answers_(.+)_set(\d+)$/);
-            if (!m) continue;
-            const lineId = m[1];
-            const setIndex = Number(m[2]);
-            const set = setsData[setIndex];
-            if (!set || !Array.isArray(set.questions)) continue;
-
-            const raw = localStorage.getItem(key);
-            if (!raw) continue;
-            let answers;
-            try {
-              answers = JSON.parse(raw);
-            } catch (e) {
-              continue;
-            }
-
-            let changed = false;
-            Object.keys(answers).forEach((qIdxStr) => {
-              const qIdx = Number(qIdxStr);
-              const q = set.questions[qIdx];
-              if (!q) return;
-              const choices = Array.isArray(q.choices) ? q.choices : null;
-              let val = answers[qIdxStr];
-              if (val === undefined || val === null) return;
-
-              const n = Number(val);
-              if (!Number.isNaN(n) && choices) {
-                if (n >= 1 && n <= choices.length) {
-                  // 1-based -> convert to 0-based
-                  if (answers[qIdxStr] !== n - 1) {
-                    answers[qIdxStr] = n - 1;
-                    changed = true;
-                  }
-                } else if (n >= 0 && n < choices.length) {
-                  // already 0-based
-                  if (answers[qIdxStr] !== n) {
-                    answers[qIdxStr] = n;
-                    changed = true;
-                  }
-                }
-              } else if (typeof val === "string" && choices) {
-                const t = String(val).trim();
-                const found = choices.findIndex((c) => String(c ?? "").trim() === t);
-                if (found >= 0 && answers[qIdxStr] !== found) {
-                  answers[qIdxStr] = found;
-                  changed = true;
-                }
-              }
-            });
-
-            if (changed) {
-              localStorage.setItem(key, JSON.stringify(answers));
-            }
-          }
-        } catch (e) {
-          console.error("Migration error:", e);
-        }
-      }
-
-      // Prepare answers for outbound (to server/share) as 1-based indices if requested.
-      // - `answersObj` is mapping questionIndex -> storedAnswer (internal 0-based or text)
-      // - returns an array of length = questions.length where unanswered entries are null
-      function prepareOutboundAnswers(setIndex, answersObj, oneBased = true) {
-        const set = setsData[setIndex];
-        if (!set) return [];
-        const qs = set.questions || set.items || [];
-        const out = new Array(qs.length).fill(null);
-        for (let i = 0; i < qs.length; i++) {
-          const a = answersObj && answersObj[i];
-          if (a === undefined || a === null) {
-            out[i] = null;
-            continue;
-          }
-          const n = Number(a);
-          if (!Number.isNaN(n)) {
-            out[i] = oneBased ? n + 1 : n; // convert internal 0-based -> 1-based
-            continue;
-          }
-          // non-numeric (text): try map to index first
-          if (Array.isArray(qs[i].choices)) {
-            const idx = qs[i].choices.findIndex((c) => String(c ?? "").trim() === String(a).trim());
-            if (idx >= 0) {
-              out[i] = oneBased ? idx + 1 : idx;
-              continue;
-            }
-          }
-          // fallback: send raw text
-          out[i] = String(a);
-        }
-        return out;
       }
       /* ---------- LIFF initialization ---------- */
       async function initializeLIFF() {
@@ -603,10 +440,6 @@
             console.log("Loaded from GAS:", data);
             setsData = Array.isArray(data) ? data : data.sets || [];
             if (setsData.length > 0) {
-              // normalize answers coming from GAS (they may be numeric indices)
-              normalizeAnswers(setsData);
-              // migrate any stored user answers in localStorage to 0-based indices
-              migrateStoredAnswers();
               console.log(`Loaded ${setsData.length} quiz sets from GAS`);
               renderSetSelect();
               renderSetsStatus();
@@ -621,8 +454,6 @@
             if (!res.ok) throw new Error("questions.json not found");
             const data = await res.json();
             setsData = data.sets || [];
-            normalizeAnswers(setsData);
-            migrateStoredAnswers();
             console.log(
               `Loaded ${setsData.length} quiz sets from JSON fallback`
             );
@@ -830,14 +661,13 @@
         const choicesBox = document.getElementById("choicesBox");
         choicesBox.innerHTML = "";
         q.choices.forEach((c, idx) => {
-          // use index as the value so we store numeric indices for answers
-          const checked = isChoiceSelected(userAnswers[currentIndex], c, idx)
+          const checked = answerEquals(userAnswers[currentIndex], c)
             ? "checked"
             : "";
           const lbl = document.createElement("label");
           lbl.className =
             "flex items-center gap-3 p-2 border rounded hover:bg-gray-50";
-          lbl.innerHTML = `<input type="radio" name="choice" value="${idx}" ${checked}> <span>${c}</span>`;
+          lbl.innerHTML = `<input type="radio" name="choice" value="${c}" ${checked}> <span>${c}</span>`;
           choicesBox.appendChild(lbl);
         });
 
@@ -852,9 +682,7 @@
       function saveCurrentAnswer() {
         const sel = document.querySelector("input[name='choice']:checked");
         if (sel) {
-          // store numeric index for consistency with normalized answers
-          const val = Number(sel.value);
-          userAnswers[currentIndex] = Number.isNaN(val) ? sel.value : val;
+          userAnswers[currentIndex] = sel.value;
           saveAnswers(currentSetIndex, userAnswers);
         }
       }
@@ -952,7 +780,11 @@
         // count answered from merged (most accurate)
         let answered = Object.keys(merged).length;
         for (let i = 0; i < total; i++) {
-          if (merged[i] !== undefined && isCorrectForQuestion(merged[i], set.questions[i])) correct++;
+          if (
+            merged[i] !== undefined &&
+            answerEquals(merged[i], set.questions[i].answer)
+          )
+            correct++;
         }
 
         // write summary UI
@@ -971,23 +803,7 @@
         for (let i = 0; i < total; i++) {
           const q = questions[i];
           const ans = merged[i];
-          const ok = ans !== undefined && isCorrectForQuestion(ans, q);
-
-          // display user's answer as choice text if stored as numeric index
-          let displayAns = ans;
-          if (displayAns !== undefined && Array.isArray(q.choices)) {
-            const n = Number(displayAns);
-            if (!Number.isNaN(n) && q.choices[n] !== undefined) displayAns = q.choices[n];
-            else if (!Number.isNaN(n) && q.choices[n - 1] !== undefined) displayAns = q.choices[n - 1];
-          }
-
-          // display correct answer as choice text if stored as numeric index
-          let displayCorrect = q.answer;
-          if (displayCorrect !== undefined && Array.isArray(q.choices)) {
-            const cn = Number(displayCorrect);
-            if (!Number.isNaN(cn) && q.choices[cn] !== undefined) displayCorrect = q.choices[cn];
-          }
-
+          const ok = ans !== undefined && answerEquals(ans, q.answer);
           const el = document.createElement("div");
           el.className = "p-2 border-b";
           el.innerHTML = `<div class="font-medium">ข้อ ${i + 1}: ${
@@ -995,8 +811,8 @@
           }</div>
       <div>คำตอบของคุณ: <span class="${
         ok ? "text-green-600" : "text-red-600"
-      }">${displayAns ?? "- (ไม่ได้ตอบ)"}</span></div>
-      <div class="text-blue-700">เฉลย: ${displayCorrect}</div>`;
+      }">${ans ?? "- (ไม่ได้ตอบ)"}</span></div>
+      <div class="text-blue-700">เฉลย: ${q.answer}</div>`;
           list.appendChild(el);
         }
 
@@ -1068,7 +884,11 @@
         const total = set.questions.length;
         let correct = 0;
         for (let i = 0; i < total; i++) {
-          if (merged[i] !== undefined && isCorrectForQuestion(merged[i], set.questions[i])) correct++;
+          if (
+            merged[i] !== undefined &&
+            answerEquals(merged[i], set.questions[i].answer)
+          )
+            correct++;
         }
         const answered = Object.keys(merged).length;
 
