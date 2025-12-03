@@ -702,7 +702,7 @@
         const choicesBox = document.getElementById("choicesBox");
         choicesBox.innerHTML = "";
         q.choices.forEach((c, idx) => {
-          const checked = answerEquals(userAnswers[currentIndex], c)
+          const checked = isChoiceSelected(userAnswers[currentIndex], c, idx)
             ? "checked"
             : "";
           const lbl = document.createElement("label");
@@ -821,10 +821,7 @@
         // count answered from merged (most accurate)
         let answered = Object.keys(merged).length;
         for (let i = 0; i < total; i++) {
-          if (
-            merged[i] !== undefined &&
-            answerEquals(merged[i], set.questions[i].answer)
-          )
+          if (merged[i] !== undefined && isCorrectForQuestion(merged[i], set.questions[i]))
             correct++;
         }
 
@@ -945,10 +942,7 @@
         const total = set.questions.length;
         let correct = 0;
         for (let i = 0; i < total; i++) {
-          if (
-            merged[i] !== undefined &&
-            answerEquals(merged[i], set.questions[i].answer)
-          )
+          if (merged[i] !== undefined && isCorrectForQuestion(merged[i], set.questions[i]))
             correct++;
         }
         const answered = Object.keys(merged).length;
