@@ -309,43 +309,6 @@
         // normalize to trimmed strings to avoid type mismatches (number vs string)
         return String(a ?? "").trim() === String(b ?? "").trim();
       }
-      
-      /* Normalize loaded answers: convert numeric answers from GAS to 0-based index when possible
-       * - If question.choices exists and answer is a number/string number:
-       *   - If number fits 0..choices.length-1 -> keep as 0-based number
-       *   - Else if number fits 1..choices.length -> convert to 0-based (num-1)
-       * - Otherwise trim string values
-       */
-      function normalizeAnswers(sets) {
-        if (!Array.isArray(sets)) return;
-        sets.forEach((set) => {
-          const qs = set.questions || set.items || [];
-          qs.forEach((q) => {
-            if (!q) return;
-            if (q.answer === undefined || q.answer === null) return;
-            const raw = q.answer;
-            const n = Number(raw);
-            if (!Number.isNaN(n)) {
-              if (Array.isArray(q.choices)) {
-                if (n >= 0 && n < q.choices.length) {
-                  q.answer = n; // already 0-based
-                } else if (n >= 1 && n <= q.choices.length) {
-                  q.answer = n - 1; // convert 1-based -> 0-based
-                } else {
-                  // numeric but out of range: keep as trimmed string
-                  q.answer = String(raw).trim();
-                }
-              } else {
-                // no choices to map to, keep numeric
-                q.answer = n;
-              }
-            } else {
-              // non-numeric: normalize whitespace
-              q.answer = String(raw).trim();
-            }
-          });
-        });
-      }
       /* ---------- LIFF initialization ---------- */
       async function initializeLIFF() {
         try {
@@ -477,8 +440,6 @@
             console.log("Loaded from GAS:", data);
             setsData = Array.isArray(data) ? data : data.sets || [];
             if (setsData.length > 0) {
-              // Normalize answers (GAS may provide numeric answers)
-              normalizeAnswers(setsData);
               console.log(`Loaded ${setsData.length} quiz sets from GAS`);
               renderSetSelect();
               renderSetsStatus();
@@ -493,8 +454,6 @@
             if (!res.ok) throw new Error("questions.json not found");
             const data = await res.json();
             setsData = data.sets || [];
-            // Normalize answers from JSON fallback too (in case author used numeric values)
-            normalizeAnswers(setsData);
             console.log(
               `Loaded ${setsData.length} quiz sets from JSON fallback`
             );
@@ -666,7 +625,7 @@
 
       function startQuiz() {
         const sel = document.getElementById("setSelect");
-        const idx = sel.value;
+        const idx = Number(sel.value);
         currentSetIndex = idx;
         currentQuiz = setsData[idx].questions || setsData[idx].items || [];
         userAnswers = loadAnswers(idx) || {};
@@ -702,7 +661,7 @@
         const choicesBox = document.getElementById("choicesBox");
         choicesBox.innerHTML = "";
         q.choices.forEach((c, idx) => {
-          const checked = isChoiceSelected(userAnswers[currentIndex], c, idx)
+          const checked = answerEquals(userAnswers[currentIndex], c)
             ? "checked"
             : "";
           const lbl = document.createElement("label");
@@ -821,7 +780,10 @@
         // count answered from merged (most accurate)
         let answered = Object.keys(merged).length;
         for (let i = 0; i < total; i++) {
-          if (merged[i] !== undefined && isCorrectForQuestion(merged[i], set.questions[i]))
+          if (
+            merged[i] !== undefined &&
+            answerEquals(merged[i], set.questions[i].answer)
+          )
             correct++;
         }
 
@@ -841,27 +803,7 @@
         for (let i = 0; i < total; i++) {
           const q = questions[i];
           const ans = merged[i];
-          const ok = ans !== undefined && isCorrectForQuestion(ans, q);
-
-          // Render a user-friendly answer: if stored answer is an index, map to choice text
-          let displayAns = ans;
-          if (displayAns !== undefined && Array.isArray(q.choices)) {
-            const maybeNum = Number(displayAns);
-            if (!Number.isNaN(maybeNum)) {
-              if (q.choices[maybeNum] !== undefined) displayAns = q.choices[maybeNum];
-              else if (q.choices[maybeNum - 1] !== undefined) displayAns = q.choices[maybeNum - 1];
-            }
-          }
-
-          // Resolve correct answer display: if q.answer is numeric index, map to choice text
-          let displayCorrect = q.answer;
-          if (displayCorrect !== undefined && Array.isArray(q.choices)) {
-            const maybeNum2 = Number(displayCorrect);
-            if (!Number.isNaN(maybeNum2) && q.choices[maybeNum2] !== undefined) {
-              displayCorrect = q.choices[maybeNum2];
-            }
-          }
-
+          const ok = ans !== undefined && answerEquals(ans, q.answer);
           const el = document.createElement("div");
           el.className = "p-2 border-b";
           el.innerHTML = `<div class="font-medium">ข้อ ${i + 1}: ${
@@ -869,8 +811,8 @@
           }</div>
       <div>คำตอบของคุณ: <span class="${
         ok ? "text-green-600" : "text-red-600"
-      }">${displayAns ?? "- (ไม่ได้ตอบ)"}</span></div>
-      <div class="text-blue-700">เฉลย: ${displayCorrect}</div>`;
+      }">${ans ?? "- (ไม่ได้ตอบ)"}</span></div>
+      <div class="text-blue-700">เฉลย: ${q.answer}</div>`;
           list.appendChild(el);
         }
 
@@ -942,7 +884,10 @@
         const total = set.questions.length;
         let correct = 0;
         for (let i = 0; i < total; i++) {
-          if (merged[i] !== undefined && isCorrectForQuestion(merged[i], set.questions[i]))
+          if (
+            merged[i] !== undefined &&
+            answerEquals(merged[i], set.questions[i].answer)
+          )
             correct++;
         }
         const answered = Object.keys(merged).length;
